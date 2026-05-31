@@ -2,7 +2,6 @@ import type { KworkProject, ProjectAnalysis, UserProfile } from "@repo/types";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { withModelFallback } from "./model-with-fallback";
-import { buildSystemPrompt } from "./prompt";
 
 const analysisSchema = z.object({
   isMatch: z.boolean().describe("Подходит ли проект для данного профиля"),
@@ -10,21 +9,63 @@ const analysisSchema = z.object({
   suggestedPrice: z.number().describe("Рекомендуемая цена оффера в рублях"),
   proposalText: z
     .string()
-    .describe(
-      "Текст отклика на проект (без markdown, начинать с 'Добрый день')",
-    ),
+    .describe("Текст отклика (без markdown, 3-5 предложений, живой человеческий стиль)"),
 });
+
+const OPENING_VARIANTS = [
+  "Добрый день.",
+  "Здравствуйте.",
+  "Привет.",
+  "Добрый день!",
+  "Здравствуйте!",
+];
+
+const CLOSING_VARIANTS = [
+  "Готов обсудить детали.",
+  "Напишите, если есть вопросы.",
+  "Готов приступить.",
+  "Можем обсудить подробнее.",
+  "Пишите, обсудим.",
+  "Готов взяться за задачу.",
+];
+
+const STRUCTURE_VARIANTS = [
+  "Кратко покажи что понял задачу, назови 1-2 релевантных навыка из своего стека, заверши закрывающей фразой.",
+  "Покажи что понял суть задачи, упомяни похожий опыт одним предложением, заверши закрывающей фразой.",
+  "Сразу к делу: что именно ты сделаешь и каким стеком, заверши закрывающей фразой.",
+  "Упомяни конкретный похожий проект из опыта одним предложением, скажи что готов сделать то же самое, заверши закрывающей фразой.",
+];
+
+const AUTO_OFFER_SYSTEM_PROMPT = `
+Ты — живой фрилансер, пишешь короткий отклик на проект с биржи Kwork.
+
+ПРАВИЛА:
+- Максимум 4-5 предложений. Краткость — главное.
+- Никакого markdown, никаких списков, никаких заголовков.
+- Пиши как человек: живо, без канцелярита и шаблонов.
+- Запрещённые слова и фразы: "рад", "готов предложить", "данный", "осуществить", "реализовать", "в рамках", "в кратчайшие сроки", "качественно", "профессионально", "под ключ", "с удовольствием".
+- Не начинай каждое предложение с "Я".
+- Не перечисляй все навыки — упомяни только 1-2 самых релевантных к задаче.
+- Не обещай "гарантии", не хвали проект, не пиши "интересный проект".
+- Пиши уверенно и по делу, от первого лица.
+`.trim();
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)] as T;
+}
 
 export async function analyzeAndGenerateOffer(
   profile: UserProfile,
   project: KworkProject,
 ): Promise<ProjectAnalysis> {
-  const systemPrompt = buildSystemPrompt();
+  const opening = pickRandom(OPENING_VARIANTS);
+  const closing = pickRandom(CLOSING_VARIANTS);
+  const structure = pickRandom(STRUCTURE_VARIANTS);
 
   const userPrompt = `
-Ты — опытный фрилансер. Проанализируй проект с биржи Kwork и реши, стоит ли на него откликаться.
+Проанализируй проект и реши, стоит ли откликаться.
 
-ПРОФИЛЬ ИСПОЛНИТЕЛЯ:
+МОЙ ПРОФИЛЬ:
 - Имя: ${profile.name}
 - Специализация: ${profile.specialization}
 - Опыт: ${profile.experienceYears} лет
@@ -32,31 +73,26 @@ export async function analyzeAndGenerateOffer(
 - О себе: ${profile.bio}
 
 ПРОЕКТ:
-- ID: ${project.id}
 - Название: ${project.title}
 - Описание: ${project.description}
-- Бюджет заказчика: ${project.price} руб.
-- Готов рассмотреть цену выше: ${project.allow_higher_price ? "да" : "нет"}
-- Максимально возможная цена: ${project.possible_price_limit ?? project.price} руб.
-- Количество уже поданных откликов: ${project.offers}
-- Процент найма у заказчика: ${project.user_hired_percent}%
+- Бюджет: ${project.price} руб.${project.allow_higher_price ? ` (готов платить до ${project.possible_price_limit ?? project.price} руб.)` : ""}
+- Откликов уже: ${project.offers}
+- Процент найма: ${project.user_hired_percent}%
 
 ЗАДАЧА:
-1. Определи, подходит ли проект под мои навыки (isMatch)
-2. Объясни решение кратко (reason)
-3. Предложи оптимальную цену (suggestedPrice). Учти бюджет заказчика, его готовность платить больше, и твой опыт. Цена должна быть конкурентоспособной и справедливой.
-4. Если проект подходит — напиши убедительный отклик (proposalText). Без markdown, начинай с "Добрый день". Упомяни конкретные навыки из проекта.
-
-Если проект НЕ подходит — в proposalText верни пустую строку.
+1. isMatch — подходит ли проект под мои навыки
+2. reason — кратко почему да/нет
+3. suggestedPrice — оптимальная цена с учётом бюджета и опыта
+4. proposalText — если подходит: напиши отклик. Начни с "${opening}", заверши фразой "${closing}". Структура: ${structure} Если не подходит — верни пустую строку.
 `.trim();
 
   const result = await withModelFallback((model, modelId) =>
     generateText({
       model,
-      system: systemPrompt,
+      system: AUTO_OFFER_SYSTEM_PROMPT,
       prompt: userPrompt,
       output: Output.object({ schema: analysisSchema }),
-      temperature: 0.4,
+      temperature: 0.8,
       experimental_telemetry: {
         isEnabled: true,
         functionId: "analyze-and-generate-offer",

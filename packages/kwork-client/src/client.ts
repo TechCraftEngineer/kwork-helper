@@ -220,6 +220,38 @@ export class KworkClient {
     return result.response;
   }
 
+  async getAllProjects(
+    params: { priceFrom?: number; priceTo?: number } = {},
+  ): Promise<KworkProject[]> {
+    const all: KworkProject[] = [];
+    let page = 1;
+
+    while (true) {
+      const result = await this.request<KworkProject[]>("/projects", {
+        categories: "11",
+        price_from: params.priceFrom,
+        price_to: params.priceTo,
+        page,
+      });
+
+      const batch = result.response;
+      if (!batch || batch.length === 0) break;
+
+      all.push(...batch);
+
+      const totalPages = result.pages;
+      if (totalPages !== undefined) {
+        if (page >= totalPages) break;
+      } else {
+        if (batch.length === 0) break;
+      }
+
+      page++;
+    }
+
+    return all;
+  }
+
   async getProject(id: number): Promise<KworkProject> {
     const result = await this.request<KworkProject>("/project", { id });
     return result.response;

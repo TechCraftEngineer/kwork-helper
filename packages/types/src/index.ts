@@ -98,10 +98,13 @@ export interface KworkApiResponse<T> {
   response: T;
   error?: string;
   error_code?: number;
+  pages?: number;
+  total?: number;
 }
 
 export interface AutoRespondSettings {
   dryRun: boolean;
+  maxOffers?: number;
 }
 
 export interface ProjectAnalysis {

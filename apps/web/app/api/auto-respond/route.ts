@@ -4,6 +4,26 @@ import { KworkClient } from "@repo/kwork-client";
 import type { AutoRespondSettings, AutoRespondResult, UserProfile } from "@repo/types";
 import { env } from "../../../env";
 
+const DELAY_MIN_MS = 35_000;
+const DELAY_MAX_MS = 90_000;
+const DELAY_DRY_RUN_MIN_MS = 800;
+const DELAY_DRY_RUN_MAX_MS = 2_500;
+const DEFAULT_MAX_OFFERS = 5;
+
+function randomDelay(min: number, max: number): Promise<void> {
+  const ms = Math.floor(Math.random() * (max - min + 1)) + min;
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j] as T, copy[i] as T];
+  }
+  return copy;
+}
+
 const DEFAULT_PROFILE: UserProfile = {
   name: "Максим",
   specialization: "Fullstack & AI-разработка",
@@ -47,10 +67,14 @@ export async function POST(request: NextRequest): Promise<Response> {
         }
 
         const client = await KworkClient.signIn(kworkLogin, kworkPassword);
-        const projects = await client.getProjects({});
-        const newProjects = projects.filter((p) => !p.has_offer).slice(0, 10);
+        const allProjects = await client.getAllProjects({});
+        const maxOffers = body.maxOffers ?? DEFAULT_MAX_OFFERS;
+        const candidates = shuffleArray(allProjects.filter((p) => !p.has_offer));
+        const newProjects = candidates.slice(0, maxOffers);
 
-        controller.enqueue(encode(sseEvent("total", { count: newProjects.length })));
+        controller.enqueue(encode(sseEvent("total", { count: newProjects.length, totalFetched: allProjects.length })));
+
+        let sentCount = 0;
 
         for (const project of newProjects) {
           controller.enqueue(encode(sseEvent("processing", { projectId: project.id, projectTitle: project.title })));
@@ -73,9 +97,18 @@ export async function POST(request: NextRequest): Promise<Response> {
                 price: analysis.suggestedPrice,
               });
               result.sent = true;
+              sentCount++;
             }
 
             controller.enqueue(encode(sseEvent("result", result)));
+
+            const isLast = project === newProjects[newProjects.length - 1];
+            if (!isLast) {
+              const [min, max] = body.dryRun
+                ? [DELAY_DRY_RUN_MIN_MS, DELAY_DRY_RUN_MAX_MS]
+                : [DELAY_MIN_MS, DELAY_MAX_MS];
+              await randomDelay(min, max);
+            }
           } catch (err) {
             const result: AutoRespondResult = {
               projectId: project.id,
