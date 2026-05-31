@@ -1,12 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
 import { KworkClient } from "@repo/kwork-client";
-import type {
-  AutoRespondSettings,
-  AutoRespondResult,
-  ApiError,
-  UserProfile,
-} from "@repo/types";
+import type { AutoRespondSettings, AutoRespondResult, UserProfile } from "@repo/types";
 import { env } from "../../../env";
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -28,76 +23,88 @@ const DEFAULT_PROFILE: UserProfile = {
   responseTime: "1-2 часа",
 };
 
-export async function POST(
-  request: NextRequest,
-): Promise<NextResponse<{ results: AutoRespondResult[] } | ApiError>> {
-  try {
-    const body: AutoRespondSettings = await request.json();
+function sseEvent(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
 
-    const kworkLogin = env.KWORK_LOGIN;
-    const kworkPassword = env.KWORK_PASSWORD;
+export async function POST(request: NextRequest): Promise<Response> {
+  const body: AutoRespondSettings = await request.json();
 
-    if (!kworkLogin || !kworkPassword) {
-      return NextResponse.json(
-        { error: "Необходимо указать переменные окружения KWORK_LOGIN и KWORK_PASSWORD" },
-        { status: 400 },
-      );
-    }
+  const kworkLogin = env.KWORK_LOGIN;
+  const kworkPassword = env.KWORK_PASSWORD;
 
-    const client = await KworkClient.signIn(kworkLogin, kworkPassword);
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encode = (chunk: string) => new TextEncoder().encode(chunk);
 
-    const projects = await client.getProjects({});
-
-    const newProjects = projects.filter((p) => !p.has_offer);
-
-    const results: AutoRespondResult[] = [];
-
-    for (const project of newProjects.slice(0, 10)) {
       try {
-        const analysis = await analyzeAndGenerateOffer(
-          DEFAULT_PROFILE,
-          project,
-        );
-
-        const result: AutoRespondResult = {
-          projectId: project.id,
-          projectTitle: project.title,
-          projectPrice: project.price,
-          analysis,
-          sent: false,
-        };
-
-        if (analysis.isMatch && !body.dryRun && analysis.proposalText) {
-          await client.sendOffer({
-            userId: project.user_id,
-            text: analysis.proposalText,
-          });
-          result.sent = true;
+        if (!kworkLogin || !kworkPassword) {
+          controller.enqueue(
+            encode(sseEvent("error", { message: "Необходимо указать переменные окружения KWORK_LOGIN и KWORK_PASSWORD" })),
+          );
+          controller.close();
+          return;
         }
 
-        results.push(result);
-      } catch (err) {
-        results.push({
-          projectId: project.id,
-          projectTitle: project.title,
-          projectPrice: project.price,
-          analysis: {
-            isMatch: false,
-            reason: "Ошибка анализа",
-            suggestedPrice: 0,
-            proposalText: "",
-          },
-          sent: false,
-          error: err instanceof Error ? err.message : "Неизвестная ошибка",
-        });
-      }
-    }
+        const client = await KworkClient.signIn(kworkLogin, kworkPassword);
+        const projects = await client.getProjects({});
+        const newProjects = projects.filter((p) => !p.has_offer).slice(0, 10);
 
-    return NextResponse.json({ results });
-  } catch (error) {
-    console.error("Ошибка автоответа:", error);
-    const message =
-      error instanceof Error ? error.message : "Не удалось выполнить автоответ";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+        controller.enqueue(encode(sseEvent("total", { count: newProjects.length })));
+
+        for (const project of newProjects) {
+          controller.enqueue(encode(sseEvent("processing", { projectId: project.id, projectTitle: project.title })));
+
+          try {
+            const analysis = await analyzeAndGenerateOffer(DEFAULT_PROFILE, project);
+
+            const result: AutoRespondResult = {
+              projectId: project.id,
+              projectTitle: project.title,
+              projectPrice: project.price,
+              analysis,
+              sent: false,
+            };
+
+            if (analysis.isMatch && !body.dryRun && analysis.proposalText) {
+              await client.submitOffer({
+                projectId: project.id,
+                description: analysis.proposalText,
+                price: analysis.suggestedPrice,
+              });
+              result.sent = true;
+            }
+
+            controller.enqueue(encode(sseEvent("result", result)));
+          } catch (err) {
+            const result: AutoRespondResult = {
+              projectId: project.id,
+              projectTitle: project.title,
+              projectPrice: project.price,
+              analysis: { isMatch: false, reason: "Ошибка анализа", suggestedPrice: 0, proposalText: "" },
+              sent: false,
+              error: err instanceof Error ? err.message : "Неизвестная ошибка",
+            };
+            controller.enqueue(encode(sseEvent("result", result)));
+          }
+        }
+
+        controller.enqueue(encode(sseEvent("done", {})));
+      } catch (error) {
+        console.error("Ошибка автоответа:", error);
+        const message = error instanceof Error ? error.message : "Не удалось выполнить автоответ";
+        controller.enqueue(encode(sseEvent("error", { message })));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }

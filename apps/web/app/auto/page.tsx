@@ -7,10 +7,15 @@ const DEFAULT_SETTINGS: AutoRespondSettings = {
   dryRun: true,
 };
 
+type ProcessingState = { projectId: number; projectTitle: string } | null;
+
 export default function AutoRespondPage() {
   const [settings, setSettings] = useState<AutoRespondSettings>(DEFAULT_SETTINGS);
-  const [results, setResults] = useState<AutoRespondResult[] | null>(null);
+  const [results, setResults] = useState<AutoRespondResult[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [processing, setProcessing] = useState<ProcessingState>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDone, setIsDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const updateField = <K extends keyof AutoRespondSettings>(
@@ -23,7 +28,10 @@ export default function AutoRespondPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setResults(null);
+    setResults([]);
+    setTotal(null);
+    setProcessing(null);
+    setIsDone(false);
     setIsLoading(true);
 
     try {
@@ -33,13 +41,44 @@ export default function AutoRespondPage() {
         body: JSON.stringify(settings),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
+        const data = await response.json();
         throw new Error(data.error ?? "Ошибка запроса");
       }
 
-      setResults(data.results);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const eventMatch = part.match(/^event: (\w+)\ndata: (.+)$/s);
+          if (!eventMatch) continue;
+          const [, event, rawData] = eventMatch;
+          const data = JSON.parse(rawData);
+
+          if (event === "total") {
+            setTotal(data.count);
+          } else if (event === "processing") {
+            setProcessing({ projectId: data.projectId, projectTitle: data.projectTitle });
+          } else if (event === "result") {
+            setProcessing(null);
+            setResults((prev) => [...prev, data as AutoRespondResult]);
+          } else if (event === "done") {
+            setIsDone(true);
+            setProcessing(null);
+          } else if (event === "error") {
+            throw new Error(data.message);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
     } finally {
@@ -47,8 +86,8 @@ export default function AutoRespondPage() {
     }
   };
 
-  const matchCount = results?.filter((r) => r.analysis.isMatch).length ?? 0;
-  const sentCount = results?.filter((r) => r.sent).length ?? 0;
+  const matchCount = results.filter((r) => r.analysis.isMatch).length;
+  const sentCount = results.filter((r) => r.sent).length;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -122,24 +161,15 @@ export default function AutoRespondPage() {
           </div>
         )}
 
-        {isLoading && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-300">
-              Загружаю проекты и анализирую с помощью AI...
-            </p>
-          </div>
-        )}
-
-        {results && (
+        {(isLoading || results.length > 0) && (
           <section className="space-y-4">
             <div className="flex items-center gap-6 p-4 bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {results.length}
+                  {total !== null ? `${results.length} / ${total}` : results.length}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Проектов
+                  Обработано
                 </div>
               </div>
               <div className="text-center">
@@ -158,7 +188,26 @@ export default function AutoRespondPage() {
                   Отправлено
                 </div>
               </div>
+              {isDone && (
+                <div className="ml-auto">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    ✓ Завершено
+                  </span>
+                </div>
+              )}
             </div>
+
+            {processing && (
+              <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl shadow border border-indigo-200 dark:border-indigo-700">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Анализирую...</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {processing.projectTitle}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {results.map((result) => (
               <ProjectResultCard key={result.projectId} result={result} />
