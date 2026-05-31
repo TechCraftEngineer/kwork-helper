@@ -1,0 +1,15 @@
+{
+  "profile": {
+    "name": "Алексей",
+    "specialization": "frontend",
+    "experienceYears": 5,
+    "skills": ["React", "TypeScript", "Next.js"],
+    "portfolioDescription": "Создал более 20 сайтов",
+    "communicationStyle": "friendly",
+    "pricingTier": "mid",
+    "bio": "Опытный фронтенд-разработчик"
+  },
+  "task": {
+    "description": "Нужен лендинг для ресторана с меню и формой бронирования"
+  }
+}

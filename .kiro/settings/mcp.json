@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "kwork-api": {
+      "command": "uvx",
+      "args": ["mcp-openapi-proxy"],
+      "env": {
+        "OPENAPI_SPEC_URL": "file:///C:/Projects/kwork/kwork-helper/specs/kwork.json",
+        "SERVER_NAME": "kwork-api",
+        "TOOL_NAME_PREFIX": "kwork"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
