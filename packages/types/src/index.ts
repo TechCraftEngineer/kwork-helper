@@ -101,10 +101,6 @@ export interface KworkApiResponse<T> {
 }
 
 export interface AutoRespondSettings {
-  kworkLogin?: string;
-  kworkPassword?: string;
-  priceFrom?: number;
-  priceTo?: number;
   dryRun: boolean;
 }
 

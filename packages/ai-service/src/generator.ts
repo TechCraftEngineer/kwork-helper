@@ -6,6 +6,7 @@ import type {
   UserProfile,
 } from "@repo/types";
 import { generateText } from "ai";
+import { env } from "./env";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 
 const DEFAULT_MODEL = "arcee-ai/trinity-large-preview:free";
@@ -32,13 +33,8 @@ function formatForTextarea(text: string): string {
 }
 
 function getModel(modelName?: string) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY не задан в переменных окружения");
-  }
-
   const openrouter = createOpenRouter({
-    apiKey,
+    apiKey: env.OPENROUTER_API_KEY,
   });
 
   return openrouter(modelName ?? DEFAULT_MODEL);

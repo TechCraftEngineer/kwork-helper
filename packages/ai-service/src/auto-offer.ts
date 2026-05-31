@@ -2,16 +2,13 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { KworkProject, ProjectAnalysis, UserProfile } from "@repo/types";
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import { env } from "./env";
 import { buildSystemPrompt } from "./prompt";
 
 const DEFAULT_MODEL = "openai/gpt-oss-120b:free";
 
 function getModel() {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY не задан в переменных окружения");
-  }
-  const openrouter = createOpenRouter({ apiKey });
+  const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
   return openrouter(DEFAULT_MODEL);
 }
 

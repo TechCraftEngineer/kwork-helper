@@ -7,6 +7,7 @@ import type {
   ApiError,
   UserProfile,
 } from "@repo/types";
+import { env } from "../../../env";
 
 const DEFAULT_PROFILE: UserProfile = {
   name: "Максим",
@@ -33,22 +34,19 @@ export async function POST(
   try {
     const body: AutoRespondSettings = await request.json();
 
-    const kworkLogin = body.kworkLogin || process.env.KWORK_LOGIN;
-    const kworkPassword = body.kworkPassword || process.env.KWORK_PASSWORD;
+    const kworkLogin = env.KWORK_LOGIN;
+    const kworkPassword = env.KWORK_PASSWORD;
 
     if (!kworkLogin || !kworkPassword) {
       return NextResponse.json(
-        { error: "Необходимо указать kworkLogin и kworkPassword (в теле запроса или в переменных окружения KWORK_LOGIN и KWORK_PASSWORD)" },
+        { error: "Необходимо указать переменные окружения KWORK_LOGIN и KWORK_PASSWORD" },
         { status: 400 },
       );
     }
 
     const client = await KworkClient.signIn(kworkLogin, kworkPassword);
 
-    const projects = await client.getProjects({
-      priceFrom: body.priceFrom,
-      priceTo: body.priceTo,
-    });
+    const projects = await client.getProjects({});
 
     const newProjects = projects.filter((p) => !p.has_offer);
 
