@@ -1,7 +1,7 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
 
 export default defineConfig({
-  project: "proj_kwork_helper",
+  project: "proj_atcasknseqxsbaocdwfm",
   dirs: ["./src/tasks"],
   maxDuration: 300,
   retries: {
