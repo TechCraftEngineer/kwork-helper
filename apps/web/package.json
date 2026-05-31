@@ -11,6 +11,8 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@langfuse/otel": "^5.4.1",
+    "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@repo/ai-service": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",

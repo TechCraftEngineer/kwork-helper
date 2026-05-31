@@ -5,7 +5,7 @@ import { z } from "zod";
 import { env } from "./env";
 import { buildSystemPrompt } from "./prompt";
 
-const DEFAULT_MODEL = "openai/gpt-oss-120b:free";
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 function getModel() {
   const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
@@ -66,6 +66,10 @@ export async function analyzeAndGenerateOffer(
     prompt: userPrompt,
     output: Output.object({ schema: analysisSchema }),
     temperature: 0.4,
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: "analyze-and-generate-offer",
+    },
   });
 
   return result.output;

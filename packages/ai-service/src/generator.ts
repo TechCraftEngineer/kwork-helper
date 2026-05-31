@@ -59,6 +59,10 @@ export async function generateProposal(
     system: systemPrompt,
     prompt: userPrompt,
     temperature: calculateCreativityTemperature(options.creativity),
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: "generate-proposal",
+    },
   });
 
   console.log("Generated single proposal:", result.text);
