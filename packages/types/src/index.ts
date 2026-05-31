@@ -21,6 +21,26 @@ export interface UserProfile {
   responseTime?: string;
 }
 
+export const DEFAULT_PROFILE: UserProfile = {
+  name: "Максим",
+  specialization: "Fullstack & AI-разработка",
+  experienceYears: 10,
+  skills: [
+    "Next.js", "React", "TypeScript", "Tailwind CSS",
+    "Node.js", "Bun.js", "tRPC", "Hono.js",
+    "PostgreSQL", "ClickHouse", "Docker", "k3s",
+    "ChatGPT", "LLM", "AI интеграция", "trigger.dev", "Inngest",
+    "Vercel AI SDK", "Vercel",
+  ],
+  portfolioDescription:
+    "Создаю прибыльные и масштабируемые веб-приложения с интеграцией AI. Работаю с CRM, ERP, личными кабинетами и корпоративными решениями «под ключ».",
+  communicationStyle: "confident",
+  pricingTier: "premium",
+  bio: "Опытный Fullstack & AI-разработчик с 10+ лет опыта. Интегрирую ChatGPT/LLM для автоматизации и аналитики, строю быстрые интерфейсы и надёжный backend.",
+  timezone: "UTC+3 (Москва)",
+  responseTime: "1-2 часа",
+};
+
 export interface TaskBrief {
   /** Полное описание технического задания */
   description: string;

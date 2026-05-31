@@ -1,28 +1,9 @@
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
 import { createDb, kworkOffers } from "@repo/db";
 import { KworkClient } from "@repo/kwork-client";
-import type { UserProfile } from "@repo/types";
+import { DEFAULT_PROFILE } from "@repo/types";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
-
-const DEFAULT_PROFILE: UserProfile = {
-  name: "Максим",
-  specialization: "Fullstack & AI-разработка",
-  experienceYears: 10,
-  skills: [
-    "Next.js", "React", "TypeScript", "Tailwind CSS",
-    "Node.js", "Bun.js", "tRPC", "Hono.js",
-    "PostgreSQL", "ClickHouse", "Docker", "k3s",
-    "ChatGPT", "LLM", "AI интеграция", "trigger.dev", "Inngest",
-  ],
-  portfolioDescription:
-    "Создаю прибыльные и масштабируемые веб-приложения с интеграцией AI. Работаю с CRM, ERP, личными кабинетами и корпоративными решениями «под ключ».",
-  communicationStyle: "confident",
-  pricingTier: "premium",
-  bio: "Опытный Fullstack & AI-разработчик с 10+ лет опыта. Интегрирую ChatGPT/LLM для автоматизации и аналитики, строю быстрые интерфейсы и надёжный backend.",
-  timezone: "UTC+3 (Москва)",
-  responseTime: "1-2 часа",
-};
 
 export const kworkAutoRespondTask = schedules.task({
   id: "kwork-auto-respond",
@@ -49,8 +30,19 @@ export const kworkAutoRespondTask = schedules.task({
 
     const db = createDb(postgresUrl);
     const client = await KworkClient.signIn(kworkLogin, kworkPassword);
+    const SKIP_KEYWORDS = [
+      "верстк", "вёрстк", "wordpress", "вордпресс", "wp-", "wp theme",
+      "html/css", "html css", "css верстк", "landing page верстк",
+      "сверстать", "сверстай", "сверстайте",
+    ];
+
+    const isSkippedProject = (title: string, description: string) => {
+      const text = `${title} ${description}`.toLowerCase();
+      return SKIP_KEYWORDS.some((kw) => text.includes(kw));
+    };
+
     const projects = await client.getProjects({});
-    const newProjects = projects.filter((p) => !p.has_offer);
+    const newProjects = projects.filter((p) => !p.has_offer && !isSkippedProject(p.title, p.description));
 
     logger.info(`Найдено проектов без отклика: ${newProjects.length}`);
 
@@ -84,7 +76,8 @@ export const kworkAutoRespondTask = schedules.task({
             projectPrice: project.price,
             isMatch: false,
             matchReason: analysis.reason,
-            suggestedPrice: analysis.suggestedPrice,
+            suggestedPrice: analysis.suggestedPrice || null,
+            proposalText: null,
           });
           logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
           continue;
@@ -135,6 +128,8 @@ export const kworkAutoRespondTask = schedules.task({
           projectTitle: project.title,
           projectPrice: project.price,
           isMatch: false,
+          proposalText: null,
+          suggestedPrice: null,
           error: errorMessage,
         });
       }
