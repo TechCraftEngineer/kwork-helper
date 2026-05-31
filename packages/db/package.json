@@ -6,6 +6,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "generate": "bun --env-file=../../.env run drizzle-kit generate",
+    "migrate": "bun --env-file=../../.env run src/migrate.ts",
     "push": "bun --env-file=../../.env drizzle-kit push",
     "studio": "bun --env-file=../../.env drizzle-kit studio",
     "check-types": "tsc --noEmit"

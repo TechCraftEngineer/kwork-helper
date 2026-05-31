@@ -8,6 +8,7 @@ if (!postgresUrl) {
 
 export default {
   schema: "./src/schema.ts",
+  out: "./migrations",
   dialect: "postgresql",
   dbCredentials: { url: postgresUrl },
   casing: "snake_case",

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --env-file=../../.env trigger dev",
-    "deploy": "trigger deploy",
+    "deploy": "bun --env-file=../../.env trigger deploy",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "@repo/typescript-config": "*",
     "@trigger.dev/build": "4.4.6",
     "@types/node": "^25.9.1",
+    "trigger.dev": "4.4.6",
     "typescript": "6.0.3"
   }
 }
