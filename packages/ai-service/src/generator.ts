@@ -12,6 +12,7 @@ import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 const DEFAULT_MODEL = "arcee-ai/trinity-large-preview:free";
 
 function formatForTextarea(text: string): string {
+
   return (
     text
       // Убираем markdown-разметку

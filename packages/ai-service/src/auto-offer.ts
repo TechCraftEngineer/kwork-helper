@@ -1,16 +1,8 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { KworkProject, ProjectAnalysis, UserProfile } from "@repo/types";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { env } from "./env";
+import { withModelFallback } from "./model-with-fallback";
 import { buildSystemPrompt } from "./prompt";
-
-const DEFAULT_MODEL = "google/gemini-2.5-flash";
-
-function getModel() {
-  const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
-  return openrouter(DEFAULT_MODEL);
-}
 
 const analysisSchema = z.object({
   isMatch: z.boolean().describe("Подходит ли проект для данного профиля"),
@@ -27,8 +19,6 @@ export async function analyzeAndGenerateOffer(
   profile: UserProfile,
   project: KworkProject,
 ): Promise<ProjectAnalysis> {
-  const model = getModel();
-
   const systemPrompt = buildSystemPrompt();
 
   const userPrompt = `
@@ -60,17 +50,20 @@ export async function analyzeAndGenerateOffer(
 Если проект НЕ подходит — в proposalText верни пустую строку.
 `.trim();
 
-  const result = await generateText({
-    model,
-    system: systemPrompt,
-    prompt: userPrompt,
-    output: Output.object({ schema: analysisSchema }),
-    temperature: 0.4,
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: "analyze-and-generate-offer",
-    },
-  });
+  const result = await withModelFallback((model, modelId) =>
+    generateText({
+      model,
+      system: systemPrompt,
+      prompt: userPrompt,
+      output: Output.object({ schema: analysisSchema }),
+      temperature: 0.4,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "analyze-and-generate-offer",
+        metadata: { modelId },
+      },
+    }),
+  );
 
   return result.output;
 }
