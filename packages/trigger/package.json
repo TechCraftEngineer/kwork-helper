@@ -8,22 +8,18 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@openrouter/ai-sdk-provider": "2.9.0",
     "@repo/ai-service": "*",
+    "@repo/db": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",
-    "@trigger.dev/sdk": "^3.0.0",
     "@t3-oss/env-core": "^0.13.11",
-    "ai": "6.0.193",
-    "drizzle-orm": "0.45.1",
-    "pg": "^8.16.3",
+    "@trigger.dev/sdk": "3.3.17",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@trigger.dev/build": "^3.0.0",
+    "@trigger.dev/build": "3.3.17",
     "@types/node": "^25.9.1",
-    "@types/pg": "^8.16.0",
     "typescript": "6.0.3"
   }
 }

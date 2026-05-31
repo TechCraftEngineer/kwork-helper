@@ -1,9 +1,9 @@
-import { schedules, logger } from "@trigger.dev/sdk";
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
+import { createDb, kworkOffers } from "@repo/db";
 import { KworkClient } from "@repo/kwork-client";
 import type { UserProfile } from "@repo/types";
+import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
-import { getDb, kworkOffers } from "../db";
 
 const DEFAULT_PROFILE: UserProfile = {
   name: "Максим",
@@ -31,13 +31,15 @@ export const kworkAutoRespondTask = schedules.task({
     timezone: "Europe/Moscow",
   },
   run: async (payload) => {
-    const db = getDb();
-
     const kworkLogin = process.env.KWORK_LOGIN;
     const kworkPassword = process.env.KWORK_PASSWORD;
+    const postgresUrl = process.env.POSTGRES_URL;
 
     if (!kworkLogin || !kworkPassword) {
       throw new Error("KWORK_LOGIN и KWORK_PASSWORD должны быть заданы");
+    }
+    if (!postgresUrl) {
+      throw new Error("POSTGRES_URL должен быть задан");
     }
 
     logger.info("Запуск авто-отклика Kwork", {
@@ -45,9 +47,9 @@ export const kworkAutoRespondTask = schedules.task({
       lastRun: payload.lastTimestamp,
     });
 
+    const db = createDb(postgresUrl);
     const client = await KworkClient.signIn(kworkLogin, kworkPassword);
     const projects = await client.getProjects({});
-
     const newProjects = projects.filter((p) => !p.has_offer);
 
     logger.info(`Найдено проектов без отклика: ${newProjects.length}`);
@@ -83,11 +85,7 @@ export const kworkAutoRespondTask = schedules.task({
             isMatch: false,
             matchReason: analysis.reason,
             suggestedPrice: analysis.suggestedPrice,
-            proposalText: null,
-            sent: false,
-            dryRun: false,
           });
-
           logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
           continue;
         }
@@ -102,9 +100,6 @@ export const kworkAutoRespondTask = schedules.task({
             isMatch: true,
             matchReason: analysis.reason,
             suggestedPrice: analysis.suggestedPrice,
-            proposalText: null,
-            sent: false,
-            dryRun: false,
             error: "AI не сгенерировал текст отклика",
           });
           continue;
@@ -127,7 +122,6 @@ export const kworkAutoRespondTask = schedules.task({
           suggestedPrice: analysis.suggestedPrice,
           proposalText: analysis.proposalText,
           sent: true,
-          dryRun: false,
           sentAt: new Date(),
         });
 
@@ -141,11 +135,6 @@ export const kworkAutoRespondTask = schedules.task({
           projectTitle: project.title,
           projectPrice: project.price,
           isMatch: false,
-          matchReason: null,
-          suggestedPrice: null,
-          proposalText: null,
-          sent: false,
-          dryRun: false,
           error: errorMessage,
         });
       }
