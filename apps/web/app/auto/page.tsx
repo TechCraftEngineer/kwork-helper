@@ -62,6 +62,7 @@ export default function AutoRespondPage() {
           const eventMatch = part.match(/^event: (\w+)\ndata: (.+)$/s);
           if (!eventMatch) continue;
           const [, event, rawData] = eventMatch;
+          if (!rawData) continue;
           const data = JSON.parse(rawData);
 
           if (event === "total") {

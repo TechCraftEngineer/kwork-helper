@@ -12,9 +12,8 @@
     "@repo/db": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",
-    "@t3-oss/env-core": "^0.13.11",
     "@trigger.dev/sdk": "3.3.17",
-    "zod": "4.4.3"
+    "drizzle-orm": "0.45.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
