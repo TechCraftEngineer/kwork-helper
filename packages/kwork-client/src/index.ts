@@ -1,1 +1,1 @@
-export { KworkClient } from "./client";
+export { KworkClient, KworkOfferLimitError } from "./client";

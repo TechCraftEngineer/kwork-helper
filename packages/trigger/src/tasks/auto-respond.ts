@@ -1,6 +1,6 @@
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
 import { createDb, kworkOffers } from "@repo/db";
-import { KworkClient } from "@repo/kwork-client";
+import { KworkClient, KworkOfferLimitError } from "@repo/kwork-client";
 import { DEFAULT_PROFILE } from "@repo/types";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
@@ -111,6 +111,21 @@ export const kworkAutoRespondTask = schedules.task({
         logger.info(`Отклик отправлен на проект #${project.id} за ${analysis.suggestedPrice} руб.`);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Неизвестная ошибка";
+
+        if (err instanceof KworkOfferLimitError) {
+          logger.warn(`Лимит откликов исчерпан, останавливаем крон: ${errorMessage}`);
+          await db.insert(kworkOffers).values({
+            projectId: project.id,
+            projectTitle: project.title,
+            projectPrice: project.price,
+            isMatch: false,
+            proposalText: null,
+            suggestedPrice: null,
+            error: errorMessage,
+          });
+          break;
+        }
+
         logger.error(`Ошибка при обработке проекта #${project.id}: ${errorMessage}`);
 
         await db.insert(kworkOffers).values({

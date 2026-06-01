@@ -6,6 +6,27 @@ const KWORK_STATIC_AUTH = "Basic bW9iaWxlX2FwaTpxRnZmUmw3dw==";
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36";
 
+export class KworkOfferLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "KworkOfferLimitError";
+  }
+}
+
+const OFFER_LIMIT_PATTERNS = [
+  /лимит/i,
+  /limit/i,
+  /исчерпан/i,
+  /превышен/i,
+  /максимальное количество/i,
+  /нельзя отправить/i,
+  /достигнут/i,
+];
+
+function isOfferLimitMessage(msg: string): boolean {
+  return OFFER_LIMIT_PATTERNS.some((re) => re.test(msg));
+}
+
 class CookieJar {
   private cookies: Map<string, string> = new Map();
 
@@ -200,6 +221,9 @@ export class KworkClient {
 
     if (json?.success === false) {
       const msg = (json.message ?? json.error ?? json.response ?? "Ошибка создания отклика") as string;
+      if (isOfferLimitMessage(msg)) {
+        throw new KworkOfferLimitError(msg);
+      }
       throw new Error(`createoffer: ${msg}`);
     }
 
