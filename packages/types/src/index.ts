@@ -131,6 +131,7 @@ export interface ProjectAnalysis {
   isMatch: boolean;
   reason: string;
   suggestedPrice: number;
+  suggestedDuration: number;
   proposalText: string;
 }
 

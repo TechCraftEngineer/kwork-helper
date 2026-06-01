@@ -6,6 +6,11 @@ import { withModelFallback } from "./model-with-fallback";
 const analysisSchema = z.object({
   isMatch: z.boolean().describe("Подходит ли проект для данного профиля"),
   reason: z.string().describe("Краткое объяснение решения (1-2 предложения)"),
+  suggestedDuration: z
+    .number()
+    .int()
+    .min(1)
+    .describe("Реалистичный срок выполнения в днях, исходя из сложности задачи (целое число от 1 до 30)"),
   proposalText: z
     .string()
     .describe("Текст отклика (без markdown, 3-5 предложений, живой человеческий стиль)"),
@@ -114,7 +119,8 @@ export async function analyzeAndGenerateOffer(
 ЗАДАЧА:
 1. isMatch — подходит ли проект под мой стек (см. критерии в системном промпте)
 2. reason — кратко почему да/нет (1-2 предложения)
-3. proposalText — если подходит: напиши отклик. Начни с "${opening}", заверши фразой "${closing}". Структура: ${structure} Выбери из стека только те технологии, которые прямо нужны для этого проекта. Если не подходит — верни пустую строку.
+3. suggestedDuration — реалистичный срок выполнения в днях (целое число, от 1 до 30), исходя из сложности задачи. Если не подходит — верни 1.
+4. proposalText — если подходит: напиши отклик. Начни с "${opening}", заверши фразой "${closing}". Структура: ${structure} Выбери из стека только те технологии, которые прямо нужны для этого проекта. Если не подходит — верни пустую строку.
 `.trim();
 
   const result = await withModelFallback((model, modelId) =>
@@ -132,5 +138,5 @@ export async function analyzeAndGenerateOffer(
     }),
   );
 
-  return { ...result.output, suggestedPrice };
+  return { ...result.output, suggestedPrice, suggestedDuration: result.output.suggestedDuration };
 }

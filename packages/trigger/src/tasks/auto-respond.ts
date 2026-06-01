@@ -91,6 +91,7 @@ export const kworkAutoRespondTask = schedules.task({
           projectId: project.id,
           description: analysis.proposalText,
           price: analysis.suggestedPrice,
+          duration: analysis.suggestedDuration,
         });
 
         sent++;

@@ -77,6 +77,7 @@ export async function POST(request: NextRequest): Promise<Response> {
                 projectId: project.id,
                 description: analysis.proposalText,
                 price: analysis.suggestedPrice,
+                duration: analysis.suggestedDuration,
               });
               result.sent = true;
               sentCount++;
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest): Promise<Response> {
               projectId: project.id,
               projectTitle: project.title,
               projectPrice: project.price,
-              analysis: { isMatch: false, reason: "Ошибка анализа", suggestedPrice: 0, proposalText: "" },
+              analysis: { isMatch: false, reason: "Ошибка анализа", suggestedPrice: 0, suggestedDuration: 1, proposalText: "" },
               sent: false,
               error: err instanceof Error ? err.message : "Неизвестная ошибка",
             };
