@@ -30,19 +30,8 @@ export const kworkAutoRespondTask = schedules.task({
 
     const db = createDb(postgresUrl);
     const client = await KworkClient.signIn(kworkLogin, kworkPassword);
-    const SKIP_KEYWORDS = [
-      "верстк", "вёрстк", "wordpress", "вордпресс", "wp-", "wp theme",
-      "html/css", "html css", "css верстк", "landing page верстк",
-      "сверстать", "сверстай", "сверстайте",
-    ];
-
-    const isSkippedProject = (title: string, description: string) => {
-      const text = `${title} ${description}`.toLowerCase();
-      return SKIP_KEYWORDS.some((kw) => text.includes(kw));
-    };
-
     const projects = await client.getProjects({});
-    const newProjects = projects.filter((p) => !p.has_offer && !isSkippedProject(p.title, p.description));
+    const newProjects = projects.filter((p) => !p.has_offer);
 
     logger.info(`Найдено проектов без отклика: ${newProjects.length}`);
 
