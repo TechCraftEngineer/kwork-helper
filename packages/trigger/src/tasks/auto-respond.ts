@@ -48,54 +48,87 @@ export const kworkAutoRespondTask = schedules.task({
 
     for (const project of newProjects) {
       const existing = await db
-        .select({ id: kworkOffers.id })
+        .select({
+          id: kworkOffers.id,
+          isMatch: kworkOffers.isMatch,
+          sent: kworkOffers.sent,
+          error: kworkOffers.error,
+        })
         .from(kworkOffers)
         .where(eq(kworkOffers.projectId, project.id))
         .limit(1);
 
       if (existing.length > 0) {
-        skipped++;
-        continue;
+        const record = existing[0];
+        if (record.sent || (record.isMatch === false && !record.error)) {
+          skipped++;
+          continue;
+        }
+
+        logger.info(
+          `Проект #${project.id} уже был обработан ранее, но попробуем ещё раз: sent=${record.sent}, isMatch=${record.isMatch}, error=${record.error}`,
+        );
+
+        await db
+          .delete(kworkOffers)
+          .where(eq(kworkOffers.projectId, project.id));
       }
 
       logger.info(`Анализирую проект #${project.id}: ${project.title}`);
 
+      let analysis;
       try {
-        const analysis = await analyzeAndGenerateOffer(
-          DEFAULT_PROFILE,
-          project,
-        );
-        analyzed++;
+        analysis = await analyzeAndGenerateOffer(DEFAULT_PROFILE, project);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Неизвестная ошибка";
+        logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
+        await db.insert(kworkOffers).values({
+          projectId: project.id,
+          projectTitle: project.title,
+          projectPrice: project.price,
+          isMatch: false,
+          matchReason: null,
+          suggestedPrice: null,
+          proposalText: null,
+          error: errorMessage ?? null,
+        });
+        continue;
+      }
 
-        if (!analysis.isMatch) {
-          await db.insert(kworkOffers).values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: false,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
-            proposalText: null,
-          });
-          logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
-          continue;
-        }
+      analyzed++;
 
-        matched++;
+      if (!analysis.isMatch) {
+        await db.insert(kworkOffers).values({
+          projectId: project.id,
+          projectTitle: project.title,
+          projectPrice: project.price,
+          isMatch: false,
+          matchReason: analysis.reason ?? null,
+          suggestedPrice: analysis.suggestedPrice ?? null,
+          proposalText: null,
+        });
+        logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
+        continue;
+      }
 
-        if (!analysis.proposalText) {
-          await db.insert(kworkOffers).values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: true,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
-            error: "AI не сгенерировал текст отклика",
-          });
-          continue;
-        }
+      matched++;
 
+      if (!analysis.proposalText) {
+        await db.insert(kworkOffers).values({
+          projectId: project.id,
+          projectTitle: project.title,
+          projectPrice: project.price,
+          isMatch: true,
+          matchReason: analysis.reason ?? null,
+          suggestedPrice: analysis.suggestedPrice ?? null,
+          proposalText: null,
+          error: "AI не сгенерировал текст отклика",
+        });
+        continue;
+      }
+
+      try {
         await client.submitOffer({
           projectId: project.id,
           description: analysis.proposalText,
@@ -141,16 +174,18 @@ export const kworkAutoRespondTask = schedules.task({
         }
 
         logger.error(
-          `Ошибка при обработке проекта #${project.id}: ${errorMessage}`,
+          `Ошибка отправки отклика на проект #${project.id}: ${errorMessage}`,
         );
 
         await db.insert(kworkOffers).values({
           projectId: project.id,
           projectTitle: project.title,
           projectPrice: project.price,
-          isMatch: false,
-          proposalText: null,
-          suggestedPrice: null,
+          isMatch: true,
+          matchReason: analysis.reason ?? null,
+          suggestedPrice: analysis.suggestedPrice ?? null,
+          proposalText: analysis.proposalText ?? null,
+          sent: false,
           error: errorMessage ?? null,
         });
       }
