@@ -92,7 +92,7 @@ export const kworkAutoRespondTask = schedules.task({
           suggestedPrice: null,
           proposalText: null,
           error: errorMessage ?? null,
-        });
+        }).onConflictDoNothing();
         continue;
       }
 
@@ -107,7 +107,7 @@ export const kworkAutoRespondTask = schedules.task({
           matchReason: analysis.reason ?? null,
           suggestedPrice: analysis.suggestedPrice ?? null,
           proposalText: null,
-        });
+        }).onConflictDoNothing();
         logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
         continue;
       }
@@ -124,7 +124,7 @@ export const kworkAutoRespondTask = schedules.task({
           suggestedPrice: analysis.suggestedPrice ?? null,
           proposalText: null,
           error: "AI не сгенерировал текст отклика",
-        });
+        }).onConflictDoNothing();
         continue;
       }
 
@@ -148,7 +148,7 @@ export const kworkAutoRespondTask = schedules.task({
           proposalText: analysis.proposalText ?? null,
           sent: true,
           sentAt: new Date(),
-        });
+        }).onConflictDoNothing();
 
         logger.info(
           `Отклик отправлен на проект #${project.id} за ${analysis.suggestedPrice} руб.`,
@@ -169,7 +169,7 @@ export const kworkAutoRespondTask = schedules.task({
             proposalText: null,
             suggestedPrice: null,
             error: errorMessage ?? null,
-          });
+          }).onConflictDoNothing();
           break;
         }
 
@@ -187,7 +187,7 @@ export const kworkAutoRespondTask = schedules.task({
           proposalText: analysis.proposalText ?? null,
           sent: false,
           error: errorMessage ?? null,
-        });
+        }).onConflictDoNothing();
       }
     }
 
