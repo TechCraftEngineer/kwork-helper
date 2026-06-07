@@ -18,15 +18,15 @@
     "@repo/types": "*",
     "@repo/ui": "*",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "next": "16.2.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "next": "16.2.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
-    "@types/node": "^25.9.1",
-    "@types/react": "19.2.15",
+    "@types/node": "^25.9.2",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "eslint": "^10.4.1",
     "postcss": "^8.5.15",

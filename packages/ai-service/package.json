@@ -12,12 +12,12 @@
     "@openrouter/ai-sdk-provider": "2.9.0",
     "@repo/types": "*",
     "@t3-oss/env-core": "^0.13.11",
-    "ai": "6.0.193",
+    "ai": "6.0.197",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "typescript": "6.0.3"
   }
 }
