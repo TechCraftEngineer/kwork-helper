@@ -90,9 +90,7 @@
         "kwork_offers_project_id_unique": {
           "name": "kwork_offers_project_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "project_id"
-          ]
+          "columns": ["project_id"]
         }
       },
       "policies": {},

@@ -7,7 +7,7 @@
     "dev": "bun --env-file=../../.env next dev",
     "build": "bun --env-file=../../.env next build",
     "start": "next start",
-    "lint": "eslint --max-warnings 0",
+    "lint": "biome check .",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
@@ -23,12 +23,10 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^25.9.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "eslint": "^10.4.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
     "@tailwindcss/postcss": "^4.3.0",

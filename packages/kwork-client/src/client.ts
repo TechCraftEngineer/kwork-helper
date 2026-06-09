@@ -13,6 +13,13 @@ export class KworkOfferLimitError extends Error {
   }
 }
 
+export class KworkProjectNotOfferableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "KworkProjectNotOfferableError";
+  }
+}
+
 const OFFER_LIMIT_PATTERNS = [
   /лимит/i,
   /limit/i,
@@ -23,8 +30,19 @@ const OFFER_LIMIT_PATTERNS = [
   /достигнут/i,
 ];
 
+const NOT_OFFERABLE_PATTERNS = [
+  /не можете отправить предложения/i,
+  /проект недоступен/i,
+  /проект закрыт/i,
+  /запрещено/i,
+];
+
 function isOfferLimitMessage(msg: string): boolean {
   return OFFER_LIMIT_PATTERNS.some((re) => re.test(msg));
+}
+
+function isNotOfferableMessage(msg: string): boolean {
+  return NOT_OFFERABLE_PATTERNS.some((re) => re.test(msg));
 }
 
 class CookieJar {
@@ -70,7 +88,10 @@ export class KworkClient {
     return apiClient;
   }
 
-  private static async signInApi(login: string, password: string): Promise<KworkClient> {
+  private static async signInApi(
+    login: string,
+    password: string,
+  ): Promise<KworkClient> {
     const response = await fetch(`${KWORK_API_BASE_URL}/signIn`, {
       method: "POST",
       headers: {
@@ -127,7 +148,10 @@ export class KworkClient {
       throw new Error(`Kwork web login HTTP error: ${response.status}`);
     }
 
-    const data = (await response.json()) as { success?: boolean; error?: string };
+    const data = (await response.json()) as {
+      success?: boolean;
+      error?: string;
+    };
     if (data.success === false) {
       throw new Error(data.error ?? "Kwork web login вернул success=false");
     }
@@ -158,7 +182,9 @@ export class KworkClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Kwork API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Kwork API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = (await response.json()) as KworkApiResponse<T>;
@@ -220,15 +246,23 @@ export class KworkClient {
     }
 
     if (json?.success === false) {
-      const msg = (json.message ?? json.error ?? json.response ?? "Ошибка создания отклика") as string;
+      const msg = (json.message ??
+        json.error ??
+        json.response ??
+        "Ошибка создания отклика") as string;
       if (isOfferLimitMessage(msg)) {
         throw new KworkOfferLimitError(msg);
+      }
+      if (isNotOfferableMessage(msg)) {
+        throw new KworkProjectNotOfferableError(msg);
       }
       throw new Error(`createoffer: ${msg}`);
     }
 
     if (!response.ok) {
-      throw new Error(`createoffer HTTP ${response.status}: ${text.slice(0, 200)}`);
+      throw new Error(
+        `createoffer HTTP ${response.status}: ${text.slice(0, 200)}`,
+      );
     }
   }
 

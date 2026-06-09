@@ -15,12 +15,26 @@ const DEFAULT_PROFILE = {
   specialization: "Fullstack & AI-разработка",
   experienceYears: 10,
   skills: [
-    "Next.js", "React", "TypeScript", "Tailwind CSS", 
-    "Node.js", "Bun.js", "tRPC", "Hono.js",
-    "PostgreSQL", "ClickHouse", "Docker", "k3s",
-    "ChatGPT", "LLM", "AI интеграция", "trigger.dev", "Inngest"
+    "Next.js",
+    "React",
+    "TypeScript",
+    "Tailwind CSS",
+    "Node.js",
+    "Bun.js",
+    "tRPC",
+    "Hono.js",
+    "PostgreSQL",
+    "ClickHouse",
+    "Docker",
+    "k3s",
+    "ChatGPT",
+    "LLM",
+    "AI интеграция",
+    "trigger.dev",
+    "Inngest",
   ],
-  portfolioDescription: "Создаю прибыльные и масштабируемые веб-приложения с интеграцией AI. Работаю с CRM, ERP, личными кабинетами и корпоративными решениями «под ключ». Развиваю стартапы от идеи до реализации. Специализируюсь на автоматизации бизнес-процессов с помощью trigger.dev (фоновые задачи) и Inngest (системы событий).",
+  portfolioDescription:
+    "Создаю прибыльные и масштабируемые веб-приложения с интеграцией AI. Работаю с CRM, ERP, личными кабинетами и корпоративными решениями «под ключ». Развиваю стартапы от идеи до реализации. Специализируюсь на автоматизации бизнес-процессов с помощью trigger.dev (фоновые задачи) и Inngest (системы событий).",
   communicationStyle: "confident" as const,
   pricingTier: "premium" as const,
   bio: "Опытный Fullstack & AI-разработчик с 10+ лет опыта. Интегрирую ChatGPT/LLM для автоматизации и аналитики, строю быстрые интерфейсы и надёжный backend. Настраиваю фоновые процессы, базы данных и оркестрацию. Использую trigger.dev для создания надежных фоновых задач с автоматическими повторами и Inngest для построения распределенных систем обработки событий. Что получаете: прозрачность разработки, соблюдение сроков, решения, ориентированные на прибыль и рост бизнеса.",
@@ -59,12 +73,12 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log("Frontend: Received data:", { 
-        hasText: !!data.text, 
+      console.log("Frontend: Received data:", {
+        hasText: !!data.text,
         textLength: data.text?.length,
         hasAlternatives: !!data.alternatives,
         alternativesCount: data.alternatives?.length,
-        metadata: data.metadata 
+        metadata: data.metadata,
       });
       setResult(data);
     } catch (err) {
@@ -96,12 +110,15 @@ export default function Home() {
               </a>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">Готов к работе</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Готов к работе
+                </span>
               </div>
             </div>
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-300 max-w-3xl">
-            Вставьте техническое задание и получите профессиональный отклик, который выделит вас среди других фрилансеров на Kwork
+            Вставьте техническое задание и получите профессиональный отклик,
+            который выделит вас среди других фрилансеров на Kwork
           </p>
         </div>
       </header>
@@ -112,8 +129,18 @@ export default function Home() {
           <div className="relative z-10">
             <div className="flex items-center mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-3">
@@ -121,7 +148,8 @@ export default function Home() {
               </h2>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              Скопируйте описание заказа с Kwork и вставьте в поле ниже. AI проанализирует требования и создаст персонализированный отклик.
+              Скопируйте описание заказа с Kwork и вставьте в поле ниже. AI
+              проанализирует требования и создаст персонализированный отклик.
             </p>
             <TaskForm onSubmit={handleTaskSubmit} isLoading={isLoading} />
           </div>
@@ -132,8 +160,18 @@ export default function Home() {
           <div className="relative z-10">
             <div className="flex items-center mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002 2V9a2 2 0 00-2-2h-1m-6 4l-2-2m2 2l-2-2m2 2l2-2" />
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002 2V9a2 2 0 00-2-2h-1m-6 4l-2-2m2 2l-2-2m2 2l2-2"
+                  />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-3">
@@ -141,7 +179,8 @@ export default function Home() {
               </h2>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              Получите убедительный отклик, который выглядит как написанный профессионалом и повышает ваши шансы на получение заказа.
+              Получите убедительный отклик, который выглядит как написанный
+              профессионалом и повышает ваши шансы на получение заказа.
             </p>
             <ProposalResult
               result={result}

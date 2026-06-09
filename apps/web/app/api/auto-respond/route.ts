@@ -42,27 +42,57 @@ export async function POST(request: NextRequest): Promise<Response> {
       try {
         if (!kworkLogin || !kworkPassword) {
           controller.enqueue(
-            encode(sseEvent("error", { message: "Необходимо указать переменные окружения KWORK_LOGIN и KWORK_PASSWORD" })),
+            encode(
+              sseEvent("error", {
+                message:
+                  "Необходимо указать переменные окружения KWORK_LOGIN и KWORK_PASSWORD",
+              }),
+            ),
           );
           controller.close();
           return;
         }
 
+        const MIN_PROJECT_PRICE = 10_000;
+
         const client = await KworkClient.signIn(kworkLogin, kworkPassword);
-        const allProjects = await client.getAllProjects({});
+        const allProjects = await client.getAllProjects({
+          priceFrom: MIN_PROJECT_PRICE,
+        });
         const maxOffers = body.maxOffers ?? DEFAULT_MAX_OFFERS;
-        const candidates = shuffleArray(allProjects.filter((p) => !p.has_offer));
+        const candidates = shuffleArray(
+          allProjects.filter(
+            (p) => !p.has_offer && p.price >= MIN_PROJECT_PRICE,
+          ),
+        );
         const newProjects = candidates.slice(0, maxOffers);
 
-        controller.enqueue(encode(sseEvent("total", { count: newProjects.length, totalFetched: allProjects.length })));
+        controller.enqueue(
+          encode(
+            sseEvent("total", {
+              count: newProjects.length,
+              totalFetched: allProjects.length,
+            }),
+          ),
+        );
 
         let sentCount = 0;
 
         for (const project of newProjects) {
-          controller.enqueue(encode(sseEvent("processing", { projectId: project.id, projectTitle: project.title })));
+          controller.enqueue(
+            encode(
+              sseEvent("processing", {
+                projectId: project.id,
+                projectTitle: project.title,
+              }),
+            ),
+          );
 
           try {
-            const analysis = await analyzeAndGenerateOffer(DEFAULT_PROFILE, project);
+            const analysis = await analyzeAndGenerateOffer(
+              DEFAULT_PROFILE,
+              project,
+            );
 
             const result: AutoRespondResult = {
               projectId: project.id,
@@ -97,7 +127,13 @@ export async function POST(request: NextRequest): Promise<Response> {
               projectId: project.id,
               projectTitle: project.title,
               projectPrice: project.price,
-              analysis: { isMatch: false, reason: "Ошибка анализа", suggestedPrice: 0, suggestedDuration: 1, proposalText: "" },
+              analysis: {
+                isMatch: false,
+                reason: "Ошибка анализа",
+                suggestedPrice: 0,
+                suggestedDuration: 1,
+                proposalText: "",
+              },
               sent: false,
               error: err instanceof Error ? err.message : "Неизвестная ошибка",
             };
@@ -108,7 +144,10 @@ export async function POST(request: NextRequest): Promise<Response> {
         controller.enqueue(encode(sseEvent("done", {})));
       } catch (error) {
         console.error("Ошибка автоответа:", error);
-        const message = error instanceof Error ? error.message : "Не удалось выполнить автоответ";
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Не удалось выполнить автоответ";
         controller.enqueue(encode(sseEvent("error", { message })));
       } finally {
         controller.close();

@@ -1,6 +1,10 @@
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
 import { createDb, kworkOffers } from "@repo/db";
-import { KworkClient, KworkOfferLimitError } from "@repo/kwork-client";
+import {
+  KworkClient,
+  KworkOfferLimitError,
+  KworkProjectNotOfferableError,
+} from "@repo/kwork-client";
 import { DEFAULT_PROFILE } from "@repo/types";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
@@ -59,7 +63,7 @@ export const kworkAutoRespondTask = schedules.task({
         .limit(1);
 
       if (existing.length > 0) {
-        const record = existing[0];
+        const record = existing[0]!;
         if (record.sent || (record.isMatch === false && !record.error)) {
           skipped++;
           continue;
@@ -186,6 +190,25 @@ export const kworkAutoRespondTask = schedules.task({
             })
             .onConflictDoNothing();
           break;
+        }
+
+        if (err instanceof KworkProjectNotOfferableError) {
+          logger.warn(
+            `Проект #${project.id} недоступен для отклика: ${errorMessage}`,
+          );
+          await db
+            .insert(kworkOffers)
+            .values({
+              projectId: project.id,
+              projectTitle: project.title,
+              projectPrice: project.price,
+              isMatch: false,
+              proposalText: null,
+              suggestedPrice: null,
+              error: errorMessage ?? null,
+            })
+            .onConflictDoNothing();
+          continue;
         }
 
         logger.error(

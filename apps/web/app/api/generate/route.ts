@@ -11,9 +11,12 @@ export async function POST(
 ): Promise<NextResponse<GenerateProposalResponse | ApiError>> {
   try {
     console.log("API: Starting generation request");
-    
+
     const body: GenerateProposalRequest = await request.json();
-    console.log("API: Request body parsed", { profile: !!body.profile, task: !!body.task });
+    console.log("API: Request body parsed", {
+      profile: !!body.profile,
+      task: !!body.task,
+    });
 
     if (!body.profile || !body.task) {
       return NextResponse.json(
@@ -39,22 +42,29 @@ export async function POST(
     const options = body.options ?? {};
 
     console.log("API: Starting generation");
-    
+
     // Увеличиваем таймаут для долгих запросов
     const result = await Promise.race([
-      generateProposal(body.profile, body.task, options) as Promise<GenerateProposalResponse>,
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("Таймаут генерации (5 минут)")), 300000)
-      )
+      generateProposal(
+        body.profile,
+        body.task,
+        options,
+      ) as Promise<GenerateProposalResponse>,
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Таймаут генерации (5 минут)")),
+          300000,
+        ),
+      ),
     ]);
 
     console.log("API: Generation completed successfully");
-    console.log("API: Result data:", { 
-      hasText: !!result.text, 
+    console.log("API: Result data:", {
+      hasText: !!result.text,
       textLength: result.text?.length,
       hasAlternatives: !!result.alternatives,
       alternativesCount: result.alternatives?.length,
-      metadata: result.metadata 
+      metadata: result.metadata,
     });
 
     return NextResponse.json(result);

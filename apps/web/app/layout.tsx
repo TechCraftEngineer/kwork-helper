@@ -13,7 +13,8 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Kwork Helper - AI генератор откликов",
-  description: "Генерируем убедительные отклики на технические задания с помощью AI. Повысьте свои шансы на Kwork с персонализированными предложениями.",
+  description:
+    "Генерируем убедительные отклики на технические задания с помощью AI. Повысьте свои шансы на Kwork с персонализированными предложениями.",
 };
 
 export default function RootLayout({
@@ -23,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
+      >
         {children}
       </body>
     </html>

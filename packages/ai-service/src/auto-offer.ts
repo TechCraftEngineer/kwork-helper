@@ -10,10 +10,14 @@ const analysisSchema = z.object({
     .number()
     .int()
     .min(1)
-    .describe("Реалистичный срок выполнения в днях, исходя из сложности задачи (целое число от 1 до 30)"),
+    .describe(
+      "Реалистичный срок выполнения в днях, исходя из сложности задачи (целое число от 1 до 30)",
+    ),
   proposalText: z
     .string()
-    .describe("Текст отклика (без markdown, 3-5 предложений, живой человеческий стиль)"),
+    .describe(
+      "Текст отклика (без markdown, 3-5 предложений, живой человеческий стиль)",
+    ),
 });
 
 const OPENING_VARIANTS = [
@@ -65,6 +69,7 @@ const AUTO_OFFER_SYSTEM_PROMPT = `
 - Если задача про автоматизацию/фоновые задачи — упомяни trigger.dev или Inngest.
 
 КРИТЕРИИ isMatch = false (не откликаться):
+- Бюджет проекта ниже 10 000 рублей — мелкие проекты игнорируем.
 - Проект про вёрстку (HTML/CSS, landing page, сверстать, сверстай).
 - Проект про WordPress.
 - Проект требует навыков, которых нет в моём стеке (мобильная разработка iOS/Android нативно, Unity, C++, PHP, Python и т.д.).
@@ -90,10 +95,7 @@ export async function analyzeAndGenerateOffer(
   const priceLimit = project.allow_higher_price
     ? (project.possible_price_limit ?? project.price)
     : project.price;
-  const suggestedPrice = Math.min(
-    Math.round(project.price * 1.1),
-    priceLimit,
-  );
+  const suggestedPrice = Math.min(Math.round(project.price * 1.1), priceLimit);
 
   const userPrompt = `
 Проанализируй проект и реши, стоит ли откликаться.
@@ -142,5 +144,9 @@ export async function analyzeAndGenerateOffer(
     }),
   );
 
-  return { ...result.output, suggestedPrice, suggestedDuration: result.output.suggestedDuration };
+  return {
+    ...result.output,
+    suggestedPrice,
+    suggestedDuration: result.output.suggestedDuration,
+  };
 }
