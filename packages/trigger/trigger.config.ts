@@ -13,7 +13,7 @@ const langfuseExporter = new OTLPTraceExporter({
 export default defineConfig({
   project: "proj_atcasknseqxsbaocdwfm",
   dirs: ["./src/tasks"],
-  maxDuration: 300,
+  maxDuration: 30000,
   retries: {
     enabledInDev: false,
     default: {
