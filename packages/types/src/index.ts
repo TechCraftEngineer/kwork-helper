@@ -1,3 +1,10 @@
+export interface ProfileCase {
+  /** Краткое описание кейса — что делал, на чём, какой результат */
+  description: string;
+  /** Теги — какие технологии/домены покрывает этот кейс */
+  tags: string[];
+}
+
 export interface UserProfile {
   /** Имя фрилансера */
   name: string;
@@ -15,6 +22,8 @@ export interface UserProfile {
   pricingTier: "budget" | "mid" | "premium";
   /** Дополнительные заметки о себе */
   bio: string;
+  /** Реальные кейсы из практики для упоминания в откликах */
+  cases?: ProfileCase[];
   /** Часовой пояс */
   timezone?: string;
   /** Среднее время отклика */
@@ -51,6 +60,65 @@ export const DEFAULT_PROFILE: UserProfile = {
   communicationStyle: "confident",
   pricingTier: "premium",
   bio: "Опытный Fullstack & AI-разработчик с 10+ лет опыта. Интегрирую ChatGPT/LLM для автоматизации и аналитики, строю быстрые интерфейсы и надёжный backend.",
+  cases: [
+    {
+      description:
+        "Разработал Telegram-бота для автоматических ответов на обращения клиентов с интеграцией GPT-4 — бот обрабатывал очередь через trigger.dev, нагрузка на поддержку снизилась в три раза.",
+      tags: ["telegram", "бот", "ai", "llm", "автоматизация", "chatgpt"],
+    },
+    {
+      description:
+        "Построил SaaS-платформу на Next.js с личными кабинетами, ролевым доступом, биллингом через Stripe и аналитикой на ClickHouse — заказчик запустил как самостоятельный продукт.",
+      tags: [
+        "saas",
+        "next.js",
+        "личный кабинет",
+        "биллинг",
+        "аналитика",
+        "веб",
+      ],
+    },
+    {
+      description:
+        "Реализовал систему реферальных приглашений и подписок для сервиса: PostgreSQL для хранения, Node.js API, дашборд статистики с фильтрами и экспортом в CSV.",
+      tags: [
+        "реферальная система",
+        "подписки",
+        "backend",
+        "api",
+        "статистика",
+        "dashboard",
+      ],
+    },
+    {
+      description:
+        "Сделал интеграцию LLM-модели (Mistral через OpenRouter) в корпоративный портал: потоковые ответы, история диалогов в PostgreSQL, ролевое ограничение доступа.",
+      tags: ["llm", "ai", "openrouter", "корпоративный", "чат", "интеграция"],
+    },
+    {
+      description:
+        "Построил парсер и агрегатор данных с биржи на Bun.js + Hono.js: автоматический сбор, нормализация и хранение в PostgreSQL, REST API для фронтенда.",
+      tags: ["парсер", "бот", "backend", "api", "автоматизация", "биржа"],
+    },
+    {
+      description:
+        "Развернул self-hosted инфраструктуру на k3s с автодеплоем через GitHub Actions: несколько сервисов в Docker, Traefik как reverse proxy, мониторинг через Grafana.",
+      tags: [
+        "devops",
+        "docker",
+        "kubernetes",
+        "k3s",
+        "деплой",
+        "инфраструктура",
+        "сервер",
+      ],
+    },
+    {
+      description:
+        "Разработал CRM-систему с Next.js фронтендом и tRPC бэкендом: управление сделками, история переписки, автоматические напоминания через cron-задачи на trigger.dev.",
+      tags: ["crm", "next.js", "trpc", "backend", "автоматизация"],
+    },
+  ],
   timezone: "UTC+3 (Москва)",
   responseTime: "1-2 часа",
 };
