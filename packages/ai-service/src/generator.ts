@@ -72,11 +72,6 @@ export async function generateProposal(
   // Форматируем для textarea
   text = formatForTextarea(text);
 
-  // Принудительно добавляем "Добрый день" если его нет
-  if (!text.startsWith("Добрый день")) {
-    text = `Добрый день\n\n${text}`;
-  }
-
   return {
     text,
     metadata: {
