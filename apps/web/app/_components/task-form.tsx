@@ -1,7 +1,7 @@
 "use client";
 
+import type { GenerationOptions, TaskBrief } from "@repo/types";
 import { useState } from "react";
-import type { TaskBrief, GenerationOptions } from "@repo/types";
 
 interface TaskFormProps {
   onSubmit: (task: TaskBrief, options: GenerationOptions) => void;

@@ -1,7 +1,7 @@
 "use client";
 
+import type { AutoRespondResult, AutoRespondSettings } from "@repo/types";
 import { useState } from "react";
-import type { AutoRespondSettings, AutoRespondResult } from "@repo/types";
 
 const DEFAULT_SETTINGS: AutoRespondSettings = {
   dryRun: true,
@@ -333,6 +333,7 @@ function ProjectResultCard({ result }: { result: AutoRespondResult }) {
       {analysis.isMatch && analysis.proposalText && (
         <div className="mt-4">
           <button
+            type="button"
             onClick={() => setExpanded((v) => !v)}
             className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
           >

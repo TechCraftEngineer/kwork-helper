@@ -1,13 +1,13 @@
 "use client";
 
-import TaskForm from "./_components/task-form";
-import ProposalResult from "./_components/proposal-result";
-import { useState } from "react";
 import type {
-  TaskBrief,
-  GenerationOptions,
   GeneratedProposal,
+  GenerationOptions,
+  TaskBrief,
 } from "@repo/types";
+import { useState } from "react";
+import ProposalResult from "./_components/proposal-result";
+import TaskForm from "./_components/task-form";
 
 // Предзаполненный профиль Максима
 const DEFAULT_PROFILE = {
@@ -134,6 +134,7 @@ export default function Home() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-label="Task"
                 >
                   <path
                     strokeLinecap="round"
@@ -165,6 +166,7 @@ export default function Home() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-label="Result"
                 >
                   <path
                     strokeLinecap="round"

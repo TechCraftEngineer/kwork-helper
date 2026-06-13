@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { GeneratedProposal } from "@repo/types";
+import { useState } from "react";
 
 interface ProposalResultProps {
   result: GeneratedProposal | null;
@@ -85,9 +85,10 @@ export default function ProposalResult({
 
       {allTexts.length > 1 && (
         <div className="mt-4 space-x-2 overflow-x-auto">
-          {allTexts.map((_, idx) => (
+          {allTexts.map((text, idx) => (
             <button
-              key={idx}
+              key={text}
+              type="button"
               className={`px-4 py-2 rounded-md text-sm font-medium ${
                 selectedVariant === idx
                   ? "bg-indigo-600 text-white"
@@ -109,6 +110,7 @@ export default function ProposalResult({
 
       <div className="mt-4 flex justify-end">
         <button
+          type="button"
           onClick={handleCopy}
           className={`px-4 py-2 rounded-md text-sm font-medium ${
             copied

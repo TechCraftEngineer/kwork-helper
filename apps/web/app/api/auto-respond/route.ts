@@ -1,8 +1,8 @@
-import { NextRequest } from "next/server";
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
 import { KworkClient } from "@repo/kwork-client";
-import type { AutoRespondSettings, AutoRespondResult } from "@repo/types";
+import type { AutoRespondResult, AutoRespondSettings } from "@repo/types";
 import { DEFAULT_PROFILE } from "@repo/types";
+import type { NextRequest } from "next/server";
 import { env } from "../../../env";
 
 const DELAY_MIN_MS = 35_000;
@@ -76,8 +76,6 @@ export async function POST(request: NextRequest): Promise<Response> {
           ),
         );
 
-        let sentCount = 0;
-
         for (const project of newProjects) {
           controller.enqueue(
             encode(
@@ -110,7 +108,6 @@ export async function POST(request: NextRequest): Promise<Response> {
                 duration: analysis.suggestedDuration,
               });
               result.sent = true;
-              sentCount++;
             }
 
             controller.enqueue(encode(sseEvent("result", result)));

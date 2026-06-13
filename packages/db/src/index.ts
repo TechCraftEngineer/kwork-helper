@@ -1,3 +1,3 @@
-export { createDb, getDefaultDb, db } from "./client";
 export type { DbSchema } from "./client";
+export { createDb, db, getDefaultDb } from "./client";
 export * from "./schema";

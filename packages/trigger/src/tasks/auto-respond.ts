@@ -5,6 +5,7 @@ import {
   KworkOfferLimitError,
   KworkProjectNotOfferableError,
 } from "@repo/kwork-client";
+import type { ProjectAnalysis } from "@repo/types";
 import { DEFAULT_PROFILE } from "@repo/types";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
@@ -63,14 +64,20 @@ export const kworkAutoRespondTask = schedules.task({
         .limit(1);
 
       if (existing.length > 0) {
-        const record = existing[0]!;
-        if (record.sent || (record.isMatch === false && !record.error)) {
+        const record = existing[0];
+        if (
+          record &&
+          (record.sent || (record.isMatch === false && !record.error))
+        ) {
           skipped++;
           continue;
         }
 
+        const sentDb = record?.sent;
+        const isMatchDb = record?.isMatch;
+        const errorDb = record?.error;
         logger.info(
-          `Проект #${project.id} уже был обработан ранее, но попробуем ещё раз: sent=${record.sent}, isMatch=${record.isMatch}, error=${record.error}`,
+          `Проект #${project.id} уже был обработан ранее, но попробуем ещё раз: sent=${sentDb}, isMatch=${isMatchDb}, error=${errorDb}`,
         );
 
         await db
@@ -80,7 +87,7 @@ export const kworkAutoRespondTask = schedules.task({
 
       logger.info(`Анализирую проект #${project.id}: ${project.title}`);
 
-      let analysis;
+      let analysis: ProjectAnalysis | undefined;
       try {
         analysis = await analyzeAndGenerateOffer(DEFAULT_PROFILE, project);
       } catch (err) {

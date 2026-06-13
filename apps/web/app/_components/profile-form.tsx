@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { UserProfile } from "@repo/types";
+import { useState } from "react";
 
 interface ProfileFormProps {
   onSubmit: (profile: UserProfile) => void;
@@ -154,7 +154,7 @@ export default function ProfileForm({
           max={30}
           value={profile.experienceYears}
           onChange={(e) =>
-            updateField("experienceYears", parseInt(e.target.value) || 0)
+            updateField("experienceYears", parseInt(e.target.value, 10) || 0)
           }
           className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
