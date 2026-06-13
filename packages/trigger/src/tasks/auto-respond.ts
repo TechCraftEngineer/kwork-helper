@@ -93,7 +93,7 @@ export const kworkAutoRespondTask = schedules.task({
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Неизвестная ошибка";
-        logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
+logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
         await db
           .insert(kworkOffers)
           .values({
@@ -104,34 +104,39 @@ export const kworkAutoRespondTask = schedules.task({
             matchReason: null,
             suggestedPrice: null,
             proposalText: null,
-            error: errorMessage ?? null,
+            error: errorMessage,
           })
-          .onConflictDoNothing();
+          .catch((e) => {
+            logger.error(`DB insert error: ${e}`);
+          });
         continue;
       }
 
       analyzed++;
 
       if (!analysis.isMatch) {
-        await db
-          .insert(kworkOffers)
-          .values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: false,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
-            proposalText: null,
-          })
-          .onConflictDoNothing();
+        try {
+          await db
+            .insert(kworkOffers)
+            .values({
+              projectId: project.id,
+              projectTitle: project.title,
+              projectPrice: project.price,
+              isMatch: false,
+              matchReason: analysis.reason || null,
+              suggestedPrice: analysis.suggestedPrice || null,
+              proposalText: null,
+            });
+        } catch (dbErr) {
+          logger.error(`DB insert error for non-match: ${dbErr}`);
+        }
         logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
         continue;
       }
 
       matched++;
 
-      if (!analysis.proposalText) {
+      if (!analysis.proposalText || !analysis.proposalText.trim()) {
         await db
           .insert(kworkOffers)
           .values({
@@ -139,8 +144,8 @@ export const kworkAutoRespondTask = schedules.task({
             projectTitle: project.title,
             projectPrice: project.price,
             isMatch: true,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
+            matchReason: analysis.reason || null,
+            suggestedPrice: analysis.suggestedPrice || null,
             proposalText: null,
             error: "AI не сгенерировал текст отклика",
           })
@@ -165,9 +170,9 @@ export const kworkAutoRespondTask = schedules.task({
             projectTitle: project.title,
             projectPrice: project.price,
             isMatch: true,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
-            proposalText: analysis.proposalText ?? null,
+            matchReason: analysis.reason || null,
+            suggestedPrice: analysis.suggestedPrice || null,
+            proposalText: analysis.proposalText || null,
             sent: true,
             sentAt: new Date(),
           })
@@ -231,9 +236,9 @@ export const kworkAutoRespondTask = schedules.task({
             projectTitle: project.title,
             projectPrice: project.price,
             isMatch: true,
-            matchReason: analysis.reason ?? null,
-            suggestedPrice: analysis.suggestedPrice ?? null,
-            proposalText: analysis.proposalText ?? null,
+            matchReason: analysis.reason || null,
+            suggestedPrice: analysis.suggestedPrice || null,
+            proposalText: analysis.proposalText || null,
             sent: false,
             error: errorMessage ?? null,
           })
