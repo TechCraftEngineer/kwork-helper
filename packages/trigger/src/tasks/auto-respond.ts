@@ -93,10 +93,9 @@ export const kworkAutoRespondTask = schedules.task({
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Неизвестная ошибка";
-logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
-        await db
-          .insert(kworkOffers)
-          .values({
+        logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
+        try {
+          await db.insert(kworkOffers).values({
             projectId: project.id,
             projectTitle: project.title,
             projectPrice: project.price,
@@ -105,38 +104,35 @@ logger.error(`Ошибка анализа проекта #${project.id}: ${error
             suggestedPrice: null,
             proposalText: null,
             error: errorMessage,
-          })
-          .catch((e) => {
-            logger.error(`DB insert error: ${e}`);
           });
+        } catch (dbErr) {
+          logger.error(`DB insert error: ${dbErr}`);
+        }
         continue;
       }
 
       analyzed++;
 
       if (!analysis.isMatch) {
-        try {
-          await db
-            .insert(kworkOffers)
-            .values({
-              projectId: project.id,
-              projectTitle: project.title,
-              projectPrice: project.price,
-              isMatch: false,
-              matchReason: analysis.reason || null,
-              suggestedPrice: analysis.suggestedPrice || null,
-              proposalText: null,
-            });
-        } catch (dbErr) {
-          logger.error(`DB insert error for non-match: ${dbErr}`);
-        }
+        await db
+          .insert(kworkOffers)
+          .values({
+            projectId: project.id,
+            projectTitle: project.title,
+            projectPrice: project.price,
+            isMatch: false,
+            matchReason: analysis.reason || null,
+            suggestedPrice: analysis.suggestedPrice || null,
+            proposalText: null,
+          })
+          .onConflictDoNothing();
         logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
         continue;
       }
 
       matched++;
 
-      if (!analysis.proposalText || !analysis.proposalText.trim()) {
+      if (!analysis.proposalText?.trim()) {
         await db
           .insert(kworkOffers)
           .values({
@@ -199,7 +195,7 @@ logger.error(`Ошибка анализа проекта #${project.id}: ${error
               matchReason: null,
               proposalText: null,
               suggestedPrice: null,
-              error: errorMessage ?? null,
+              error: errorMessage,
             })
             .onConflictDoNothing();
           break;
@@ -219,7 +215,7 @@ logger.error(`Ошибка анализа проекта #${project.id}: ${error
               matchReason: null,
               proposalText: null,
               suggestedPrice: null,
-              error: errorMessage ?? null,
+              error: errorMessage,
             })
             .onConflictDoNothing();
           continue;
@@ -240,7 +236,7 @@ logger.error(`Ошибка анализа проекта #${project.id}: ${error
             suggestedPrice: analysis.suggestedPrice || null,
             proposalText: analysis.proposalText || null,
             sent: false,
-            error: errorMessage ?? null,
+            error: errorMessage,
           })
           .onConflictDoNothing();
       }
