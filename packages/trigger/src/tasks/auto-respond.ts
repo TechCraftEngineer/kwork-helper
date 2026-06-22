@@ -12,10 +12,6 @@ import { eq } from "drizzle-orm";
 
 export const kworkAutoRespondTask = schedules.task({
   id: "kwork-auto-respond",
-  cron: {
-    pattern: "*/15 * * * *",
-    timezone: "Europe/Moscow",
-  },
   run: async (payload) => {
     const kworkLogin = process.env.KWORK_LOGIN;
     const kworkPassword = process.env.KWORK_PASSWORD;
