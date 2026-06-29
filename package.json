@@ -9,8 +9,8 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.0",
-    "turbo": "^2.9.18",
+    "@biomejs/biome": "^2.5.1",
+    "turbo": "^2.10.0",
     "typescript": "6.0.3"
   },
   "engines": {
@@ -22,8 +22,8 @@
     "packages/*"
   ],
   "dependencies": {
-    "@openrouter/ai-sdk-provider": "^2.9.1",
-    "ai": "^6.0.208",
+    "@openrouter/ai-sdk-provider": "^2.10.0",
+    "ai": "^7.0.4",
     "zod": "^4.4.3"
   }
 }
