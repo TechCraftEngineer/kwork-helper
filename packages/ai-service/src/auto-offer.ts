@@ -171,8 +171,6 @@ ${trustPhrase ? `\nNEW_PROFILE: true\nNO_REVIEWS_TRUST: "${trustPhrase}"` : ""}
       temperature: 0.8,
       experimental_telemetry: {
         isEnabled: true,
-        functionId: "analyze-and-generate-offer",
-        metadata: { modelId },
       },
     }),
   );
