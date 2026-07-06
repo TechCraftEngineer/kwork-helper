@@ -8,19 +8,19 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
     "@repo/ai-service": "*",
     "@repo/db": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",
-    "@trigger.dev/sdk": "4.4.6",
+    "@trigger.dev/sdk": "4.5.0",
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@trigger.dev/build": "4.4.6",
-    "@types/node": "^26.0.1",
-    "trigger.dev": "4.4.6",
+    "@trigger.dev/build": "4.5.0",
+    "@types/node": "^26.1.0",
+    "trigger.dev": "4.5.0",
     "typescript": "6.0.3"
   }
 }
