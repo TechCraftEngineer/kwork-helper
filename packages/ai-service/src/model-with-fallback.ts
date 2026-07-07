@@ -2,9 +2,10 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import { env } from "./env";
 
-export const PRIMARY_MODEL = "openai/gpt-oss-120b:free";
+export const PRIMARY_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 
 const FALLBACK_MODELS = [
+  "openai/gpt-oss-120b:free",
   "z-ai/glm-4.5-air:free",
   "google/gemma-4-31b-it:free",
   "moonshotai/kimi-k2.6:free",
