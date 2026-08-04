@@ -13,14 +13,14 @@
     "@repo/db": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",
-    "@trigger.dev/sdk": "4.5.0",
+    "@trigger.dev/sdk": "4.5.9",
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@trigger.dev/build": "4.5.0",
+    "@trigger.dev/build": "4.5.9",
     "@types/node": "^26.1.0",
-    "trigger.dev": "4.5.0",
+    "trigger.dev": "4.5.9",
     "typescript": "6.0.3"
   }
 }
