@@ -5,6 +5,10 @@ import { env } from "./env";
 export const PRIMARY_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 
 const FALLBACK_MODELS = [
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "inclusionai/ling-3.0-flash:free",
+  "poolside/laguna-s-2.1:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
   "openai/gpt-oss-120b:free",
   "z-ai/glm-4.5-air:free",
   "google/gemma-4-31b-it:free",
