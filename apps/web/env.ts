@@ -4,8 +4,12 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     OPENAI_API_KEY: z.string().min(1),
-    OPENAI_BASE_URL: z.string().url(),
-    OPENAI_MODELS: z.string().min(1),
+    OPENAI_BASE_URL: z.url({ protocol: /^https$/ }),
+    OPENAI_MODELS: z
+      .string()
+      .refine((value) =>
+        value.split(",").some((model) => model.trim().length > 0),
+      ),
     KWORK_LOGIN: z.string().optional(),
     KWORK_PASSWORD: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),

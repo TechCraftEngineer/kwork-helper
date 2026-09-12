@@ -5,7 +5,7 @@ import type {
   UserProfile,
 } from "@repo/types";
 import { generateText } from "ai";
-import { createModel, PRIMARY_MODEL } from "./model-with-fallback";
+import { withModelFallback } from "./model-with-fallback";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 
 function formatForTextarea(text: string): string {
@@ -39,20 +39,24 @@ export async function generateProposal(
   task: TaskBrief,
   options: GenerationOptions = {},
 ): Promise<GeneratedProposal> {
-  const model = createModel(PRIMARY_MODEL);
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt(profile, task, options);
 
-  const result = await generateText({
-    model,
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: calculateCreativityTemperature(options.creativity),
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: "generate-proposal",
-    },
-  });
+  const { result, modelId } = await withModelFallback(
+    async (model, modelId) => ({
+      result: await generateText({
+        model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        temperature: calculateCreativityTemperature(options.creativity),
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: "generate-proposal",
+        },
+      }),
+      modelId,
+    }),
+  );
 
   console.log("Generated single proposal:", result.text);
 
@@ -64,7 +68,7 @@ export async function generateProposal(
   return {
     text,
     metadata: {
-      model: PRIMARY_MODEL,
+      model: modelId,
       promptTokens: result.usage.inputTokens ?? 0,
       completionTokens: result.usage.outputTokens ?? 0,
       generatedAt: new Date().toISOString(),
