@@ -200,7 +200,7 @@ export default function Home() {
               © {new Date().getFullYear()} Kwork Helper
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-right mt-2 sm:mt-0">
-              Сгенерировано с помощью AI через OpenRouter
+              Сгенерировано с помощью AI
             </p>
           </div>
         </div>

@@ -1,26 +1,26 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { LanguageModel } from "ai";
 import { env } from "./env";
 
-export const PRIMARY_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
+const MODELS = env.OPENAI_MODELS.split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
-const FALLBACK_MODELS = [
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "inclusionai/ling-3.0-flash:free",
-  "poolside/laguna-s-2.1:free",
-  "nvidia/nemotron-3-super-120b-a12b:free",
-  "openai/gpt-oss-120b:free",
-  "z-ai/glm-4.5-air:free",
-  "google/gemma-4-31b-it:free",
-  "moonshotai/kimi-k2.6:free",
-] as const;
+export const PRIMARY_MODEL = MODELS[0] as string;
+
+const FALLBACK_MODELS = MODELS.slice(1);
 
 const PRIMARY_MAX_ATTEMPTS = 3;
 const PRIMARY_RETRY_DELAY_MS = 5_000;
 
-function createModel(modelId: string): LanguageModel {
-  const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
-  return openrouter(modelId);
+const provider = createOpenAICompatible({
+  name: "openai-compatible",
+  baseURL: env.OPENAI_BASE_URL,
+  apiKey: env.OPENAI_API_KEY,
+});
+
+export function createModel(modelId: string): LanguageModel {
+  return provider(modelId);
 }
 
 function sleep(ms: number): Promise<void> {

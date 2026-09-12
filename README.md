@@ -9,7 +9,7 @@ kwork-helper/
 ├── apps/
 │   └── web/          # Next.js 16.2 App Router фронтенд + API
 ├── packages/
-│   ├── ai-service/   # Основная логика генерации AI (OpenRouter + Vercel AI SDK)
+│   ├── ai-service/   # Основная логика генерации AI (OpenAI-совместимый API + Vercel AI SDK)
 │   ├── types/        # Общие TypeScript типы
 │   ├── ui/           # Общие React компоненты
 │   ├── typescript-config/
@@ -20,7 +20,7 @@ kwork-helper/
 
 - **Next.js 16.2** с App Router
 - **Vercel AI SDK v6** (`ai` пакет) для `generateText` / `generateObject`
-- **OpenRouter** через `@openrouter/ai-sdk-provider` — модель: `google/gemini-2.5-flash`
+- **OpenAI-совместимый API** через `@ai-sdk/openai-compatible` — база и модели задаются через `OPENAI_BASE_URL` / `OPENAI_MODELS`
 - **Turborepo** для управления монорепо
 - **Bun** как пакетный менеджер (`bun@1.3.11`)
 - **Tailwind CSS v4** для стилизации
@@ -32,7 +32,9 @@ kwork-helper/
 Создайте `.env.local` в корне или в `apps/web/`:
 
 ```
-OPENROUTER_API_KEY=sk-or-v1-...
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://router.cheap/v1
+OPENAI_MODELS=gpt-5.6-sol
 KWORK_LOGIN=ваш_логин_или_email
 KWORK_PASSWORD=ваш_пароль
 ```

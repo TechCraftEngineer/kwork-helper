@@ -10,7 +10,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 
 ## Project Overview
 
-Kwork Helper is a Turborepo monorepo that generates persuasive, human-sounding proposals/responses for freelance task postings (specifically for the Kwork platform) using AI via OpenRouter.
+Kwork Helper is a Turborepo monorepo that generates persuasive, human-sounding proposals/responses for freelance task postings (specifically for the Kwork platform) using AI via an OpenAI-compatible API.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ kwork-helper/
 ├── apps/
 │   └── web/          # Next.js 16.2 App Router frontend + API
 ├── packages/
-│   ├── ai-service/   # Core AI generation logic (OpenRouter + Vercel AI SDK)
+│   ├── ai-service/   # Core AI generation logic (OpenAI-compatible API + Vercel AI SDK)
 │   ├── types/        # Shared TypeScript types
 │   ├── ui/           # Shared React components
 │   ├── typescript-config/
@@ -30,7 +30,7 @@ kwork-helper/
 
 - **Next.js 16.2** with App Router
 - **Vercel AI SDK v6** (`ai` package) for `generateText` / `generateObject`
-- **OpenRouter** via `@openrouter/ai-sdk-provider` — model: `google/gemini-2.5-flash`
+- **OpenAI-compatible API** via `@ai-sdk/openai-compatible` — base URL and models set via `OPENAI_BASE_URL` / `OPENAI_MODELS`
 - **Turborepo** for monorepo orchestration
 - **Bun** as package manager (`bun@1.3.11`)
 - **Zod** for schema validation in structured outputs
@@ -40,7 +40,9 @@ kwork-helper/
 Required in `.env.local` (root or `apps/web/`):
 
 ```
-OPENROUTER_API_KEY=sk-or-v1-...
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://router.cheap/v1
+OPENAI_MODELS=gpt-5.6-sol
 ```
 
 ## Commands
