@@ -1,4 +1,3 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type {
   GeneratedProposal,
   GenerationOptions,
@@ -6,10 +5,8 @@ import type {
   UserProfile,
 } from "@repo/types";
 import { generateText } from "ai";
-import { env } from "./env";
+import { createModel, PRIMARY_MODEL } from "./model-with-fallback";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
-
-const DEFAULT_MODEL = "arcee-ai/trinity-large-preview:free";
 
 function formatForTextarea(text: string): string {
   return (
@@ -32,14 +29,6 @@ function formatForTextarea(text: string): string {
   );
 }
 
-function getModel(modelName?: string) {
-  const openrouter = createOpenRouter({
-    apiKey: env.OPENROUTER_API_KEY,
-  });
-
-  return openrouter(modelName ?? DEFAULT_MODEL);
-}
-
 function calculateCreativityTemperature(creativity?: number): number {
   if (creativity === undefined) return 0.7;
   return 0.3 + creativity * 0.7;
@@ -50,7 +39,7 @@ export async function generateProposal(
   task: TaskBrief,
   options: GenerationOptions = {},
 ): Promise<GeneratedProposal> {
-  const model = getModel();
+  const model = createModel(PRIMARY_MODEL);
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt(profile, task, options);
 
@@ -75,7 +64,7 @@ export async function generateProposal(
   return {
     text,
     metadata: {
-      model: DEFAULT_MODEL,
+      model: PRIMARY_MODEL,
       promptTokens: result.usage.inputTokens ?? 0,
       completionTokens: result.usage.outputTokens ?? 0,
       generatedAt: new Date().toISOString(),
