@@ -9,9 +9,9 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.2",
-    "turbo": "^2.10.3",
-    "typescript": "6.0.3"
+    "@biomejs/biome": "^2.5.13",
+    "turbo": "^2.10.12",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=18"
@@ -22,8 +22,8 @@
     "packages/*"
   ],
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.0",
-    "ai": "^7.0.15",
-    "zod": "^4.4.3"
+    "@ai-sdk/openai-compatible": "^3.0.48",
+    "ai": "^7.0.99",
+    "zod": "^4.6.4"
   }
 }

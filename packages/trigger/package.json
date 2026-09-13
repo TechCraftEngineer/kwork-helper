@@ -19,8 +19,8 @@
   "devDependencies": {
     "@repo/typescript-config": "*",
     "@trigger.dev/build": "4.5.9",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.5.1",
     "trigger.dev": "4.5.9",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }
