@@ -1,26 +1,25 @@
 {
-  "name": "@repo/trigger",
+  "name": "@repo/hatchet",
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "bun --env-file=../../.env trigger dev",
-    "deploy": "bun --env-file=../../.env trigger deploy",
+    "dev": "bun --env-file=../../.env --watch src/worker.ts",
+    "start:worker": "bun --env-file=../../.env src/worker.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
+    "@hatchet-dev/typescript-sdk": "^1.33.1",
+    "@langfuse/otel": "^5.11.1",
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@repo/ai-service": "*",
     "@repo/db": "*",
     "@repo/kwork-client": "*",
     "@repo/types": "*",
-    "@trigger.dev/sdk": "4.5.9",
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@trigger.dev/build": "4.5.9",
     "@types/node": "^26.5.1",
-    "trigger.dev": "4.5.9",
     "typescript": "7.0.2"
   }
 }

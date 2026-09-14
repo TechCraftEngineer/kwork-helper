@@ -7,12 +7,22 @@ import {
 } from "@repo/kwork-client";
 import type { ProjectAnalysis } from "@repo/types";
 import { DEFAULT_PROFILE } from "@repo/types";
-import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
+import { hatchet } from "../hatchet-client";
 
-export const kworkAutoRespondTask = schedules.task({
-  id: "kwork-auto-respond",
-  run: async (payload) => {
+export const kworkAutoRespondWorkflow = hatchet.workflow({
+  name: "kwork-auto-respond",
+});
+
+kworkAutoRespondWorkflow.task({
+  name: "run",
+  retries: 3,
+  backoff: {
+    maxSeconds: 10,
+    factor: 2,
+  },
+  executionTimeout: "30s",
+  fn: async () => {
     const kworkLogin = process.env.KWORK_LOGIN;
     const kworkPassword = process.env.KWORK_PASSWORD;
     const postgresUrl = process.env.POSTGRES_URL;
@@ -24,9 +34,8 @@ export const kworkAutoRespondTask = schedules.task({
       throw new Error("POSTGRES_URL должен быть задан");
     }
 
-    logger.info("Запуск авто-отклика Kwork", {
-      scheduledAt: payload.timestamp,
-      lastRun: payload.lastTimestamp,
+    console.log("Запуск авто-отклика Kwork", {
+      scheduledAt: new Date().toISOString(),
     });
 
     const db = createDb(postgresUrl);
@@ -40,7 +49,7 @@ export const kworkAutoRespondTask = schedules.task({
         ? candidates.slice(0, maxOffers)
         : candidates;
 
-    logger.info(`Найдено проектов без отклика: ${newProjects.length}`);
+    console.log(`Найдено проектов без отклика: ${newProjects.length}`);
 
     let analyzed = 0;
     let matched = 0;
@@ -72,7 +81,7 @@ export const kworkAutoRespondTask = schedules.task({
         const sentDb = record?.sent;
         const isMatchDb = record?.isMatch;
         const errorDb = record?.error;
-        logger.info(
+        console.log(
           `Проект #${project.id} уже был обработан ранее, но попробуем ещё раз: sent=${sentDb}, isMatch=${isMatchDb}, error=${errorDb}`,
         );
 
@@ -81,7 +90,7 @@ export const kworkAutoRespondTask = schedules.task({
           .where(eq(kworkOffers.projectId, project.id));
       }
 
-      logger.info(`Анализирую проект #${project.id}: ${project.title}`);
+      console.log(`Анализирую проект #${project.id}: ${project.title}`);
 
       let analysis: ProjectAnalysis | undefined;
       try {
@@ -89,7 +98,7 @@ export const kworkAutoRespondTask = schedules.task({
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Неизвестная ошибка";
-        logger.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
+        console.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
         try {
           await db.insert(kworkOffers).values({
             projectId: project.id,
@@ -102,7 +111,7 @@ export const kworkAutoRespondTask = schedules.task({
             error: errorMessage,
           });
         } catch (dbErr) {
-          logger.error(`DB insert error: ${dbErr}`);
+          console.error(`DB insert error: ${dbErr}`);
         }
         continue;
       }
@@ -122,7 +131,7 @@ export const kworkAutoRespondTask = schedules.task({
             proposalText: null,
           })
           .onConflictDoNothing();
-        logger.info(`Проект #${project.id} не подходит: ${analysis.reason}`);
+        console.log(`Проект #${project.id} не подходит: ${analysis.reason}`);
         continue;
       }
 
@@ -170,7 +179,7 @@ export const kworkAutoRespondTask = schedules.task({
           })
           .onConflictDoNothing();
 
-        logger.info(
+        console.log(
           `Отклик отправлен на проект #${project.id} за ${analysis.suggestedPrice} руб.`,
         );
       } catch (err) {
@@ -178,7 +187,7 @@ export const kworkAutoRespondTask = schedules.task({
           err instanceof Error ? err.message : "Неизвестная ошибка";
 
         if (err instanceof KworkOfferLimitError) {
-          logger.warn(
+          console.warn(
             `Лимит откликов исчерпан, останавливаем крон: ${errorMessage}`,
           );
           await db
@@ -198,7 +207,7 @@ export const kworkAutoRespondTask = schedules.task({
         }
 
         if (err instanceof KworkProjectNotOfferableError) {
-          logger.warn(
+          console.warn(
             `Проект #${project.id} недоступен для отклика: ${errorMessage}`,
           );
           await db
@@ -217,7 +226,7 @@ export const kworkAutoRespondTask = schedules.task({
           continue;
         }
 
-        logger.error(
+        console.error(
           `Ошибка отправки отклика на проект #${project.id}: ${errorMessage}`,
         );
 
@@ -238,7 +247,7 @@ export const kworkAutoRespondTask = schedules.task({
       }
     }
 
-    logger.info("Авто-отклик завершён", { analyzed, matched, sent, skipped });
+    console.log("Авто-отклик завершён", { analyzed, matched, sent, skipped });
 
     return { analyzed, matched, sent, skipped };
   },
