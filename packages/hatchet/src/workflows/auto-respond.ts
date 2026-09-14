@@ -21,7 +21,7 @@ kworkAutoRespondWorkflow.task({
     maxSeconds: 10,
     factor: 2,
   },
-  executionTimeout: "30s",
+  executionTimeout: "20m",
   fn: async () => {
     const kworkLogin = process.env.KWORK_LOGIN;
     const kworkPassword = process.env.KWORK_PASSWORD;
