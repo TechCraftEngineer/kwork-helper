@@ -42,7 +42,7 @@ Required in `.env.local` (root or `apps/web/`):
 ```
 OPENAI_API_KEY=...
 OPENAI_BASE_URL=https://router.cheap/v1
-OPENAI_MODELS=gpt-5.6-sol
+OPENAI_MODELS=gpt-5.6-sol,claude-sonnet-5
 ```
 
 ## Commands
