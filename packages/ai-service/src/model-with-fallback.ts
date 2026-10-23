@@ -17,6 +17,7 @@ const provider = createOpenAICompatible({
   name: "openai-compatible",
   baseURL: env.OPENAI_BASE_URL,
   apiKey: env.OPENAI_API_KEY,
+  supportsStructuredOutputs: true,
 });
 
 export function createModel(modelId: string): LanguageModel {
