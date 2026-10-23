@@ -1,4 +1,8 @@
-import type { KworkApiResponse, KworkProject } from "@repo/types";
+import type {
+  KworkApiResponse,
+  KworkConnects,
+  KworkProject,
+} from "@repo/types";
 
 const KWORK_API_BASE_URL = "https://api.kwork.ru";
 const KWORK_WEB_BASE_URL = "https://kwork.ru";
@@ -281,7 +285,15 @@ export class KworkClient {
   async getAllProjects(
     params: { priceFrom?: number; priceTo?: number } = {},
   ): Promise<KworkProject[]> {
+    const { projects } = await this.getProjectsFeed(params);
+    return projects;
+  }
+
+  async getProjectsFeed(
+    params: { priceFrom?: number; priceTo?: number } = {},
+  ): Promise<{ projects: KworkProject[]; connects?: KworkConnects }> {
     const all: KworkProject[] = [];
+    let connects: KworkConnects | undefined;
     let page = 1;
 
     while (true) {
@@ -292,22 +304,20 @@ export class KworkClient {
         page,
       });
 
+      connects ??= result.connects;
+
       const batch = result.response;
       if (!batch || batch.length === 0) break;
 
       all.push(...batch);
 
-      const totalPages = result.pages;
-      if (totalPages !== undefined) {
-        if (page >= totalPages) break;
-      } else {
-        if (batch.length === 0) break;
-      }
+      const totalPages = result.paging?.pages ?? result.pages;
+      if (totalPages !== undefined && page >= totalPages) break;
 
       page++;
     }
 
-    return all;
+    return { projects: all, connects };
   }
 
   async getProject(id: number): Promise<KworkProject> {
