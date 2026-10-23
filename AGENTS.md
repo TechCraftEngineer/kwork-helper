@@ -52,6 +52,7 @@ bun run dev          # Start all apps in dev mode
 bun run build        # Build all packages
 bun run lint         # Lint all packages
 bun run check-types  # Type-check all packages
+bun run auto-respond -- --dry-run  # Run auto-respond locally without Hatchet (drop --dry-run to send)
 ```
 
 ## Code Conventions

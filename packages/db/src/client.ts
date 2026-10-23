@@ -4,8 +4,13 @@ import * as schema from "./schema";
 
 export type DbSchema = typeof schema;
 
-export function createDb(connectionString: string): NodePgDatabase<DbSchema> {
+export function createDb(
+  connectionString: string,
+): NodePgDatabase<DbSchema> & { $client: Pool } {
   const pool = new Pool({ connectionString });
+  pool.on("error", (err) => {
+    console.error("Ошибка простаивающего соединения с Postgres:", err.message);
+  });
   return drizzle({ client: pool, schema, casing: "snake_case" });
 }
 

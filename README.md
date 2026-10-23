@@ -48,6 +48,7 @@ bun run dev          # Запустить все приложения в реж�
 bun run build        # Собрать все пакеты
 bun run lint         # Проверить линтинг
 bun run check-types  # Проверить типы
+bun run auto-respond -- --dry-run  # Авто-отклик локально, без Hatchet (без --dry-run — с отправкой)
 ```
 
 ## Как работает генерация
