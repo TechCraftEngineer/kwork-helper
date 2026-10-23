@@ -195,6 +195,12 @@ export interface KworkProject {
   user_hired_percent: number;
 }
 
+export interface KworkConnects {
+  all_connects: number;
+  active_connects: number;
+  update_time: number;
+}
+
 export interface KworkApiResponse<T> {
   success: boolean;
   response: T;
@@ -202,6 +208,8 @@ export interface KworkApiResponse<T> {
   error_code?: number;
   pages?: number;
   total?: number;
+  paging?: { pages?: number };
+  connects?: KworkConnects;
 }
 
 export interface AutoRespondSettings {

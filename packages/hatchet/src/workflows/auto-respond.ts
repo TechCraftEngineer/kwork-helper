@@ -1,14 +1,66 @@
 import { analyzeAndGenerateOffer } from "@repo/ai-service";
-import { createDb, kworkOffers } from "@repo/db";
+import { createDb, kworkOffers, type NewKworkOffer } from "@repo/db";
 import {
   KworkClient,
   KworkOfferLimitError,
   KworkProjectNotOfferableError,
 } from "@repo/kwork-client";
-import type { ProjectAnalysis } from "@repo/types";
+import type { KworkProject, ProjectAnalysis } from "@repo/types";
 import { DEFAULT_PROFILE } from "@repo/types";
 import { eq } from "drizzle-orm";
 import { hatchet } from "../hatchet-client";
+
+const DEFAULT_MIN_PROJECT_PRICE = 10_000;
+const SEND_GAP_MIN_MS = 20_000;
+const SEND_GAP_MAX_MS = 60_000;
+const RUN_BUDGET_MS = 17 * 60_000;
+
+type Db = ReturnType<typeof createDb>;
+type OfferFields = Omit<
+  NewKworkOffer,
+  "id" | "projectId" | "projectTitle" | "projectPrice" | "createdAt"
+>;
+
+function parseIntEnv(name: string): number | undefined {
+  const raw = process.env[name];
+  if (!raw) return undefined;
+  const value = Number.parseInt(raw, 10);
+  return Number.isNaN(value) ? undefined : value;
+}
+
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function saveOffer(
+  db: Db,
+  project: KworkProject,
+  fields: OfferFields,
+): Promise<void> {
+  const values = {
+    projectTitle: project.title,
+    projectPrice: project.price,
+    matchReason: null,
+    suggestedPrice: null,
+    proposalText: null,
+    sent: false,
+    sentAt: null,
+    error: null,
+    ...fields,
+  };
+  try {
+    await db
+      .insert(kworkOffers)
+      .values({ projectId: project.id, ...values })
+      .onConflictDoUpdate({ target: kworkOffers.projectId, set: values });
+  } catch (err) {
+    console.error(`Ошибка записи в БД для проекта #${project.id}: ${err}`);
+  }
+}
 
 export const kworkAutoRespondWorkflow = hatchet.workflow({
   name: "kwork-auto-respond",
@@ -23,6 +75,7 @@ kworkAutoRespondWorkflow.task({
   },
   executionTimeout: "20m",
   fn: async () => {
+    const startedAt = Date.now();
     const kworkLogin = process.env.KWORK_LOGIN;
     const kworkPassword = process.env.KWORK_PASSWORD;
     const postgresUrl = process.env.POSTGRES_URL;
@@ -34,32 +87,60 @@ kworkAutoRespondWorkflow.task({
       throw new Error("POSTGRES_URL должен быть задан");
     }
 
+    const minPrice =
+      parseIntEnv("MIN_PROJECT_PRICE") ?? DEFAULT_MIN_PROJECT_PRICE;
+    const maxOffers = parseIntEnv("MAX_OFFERS_PER_RUN");
+
     console.log("Запуск авто-отклика Kwork", {
       scheduledAt: new Date().toISOString(),
+      minPrice,
+      maxOffers,
     });
 
     const db = createDb(postgresUrl);
     const client = await KworkClient.signIn(kworkLogin, kworkPassword);
-    const allProjects = await client.getAllProjects({});
-    const candidates = allProjects.filter((p) => !p.has_offer);
-    const maxOffersEnv = process.env.MAX_OFFERS_PER_RUN;
-    const maxOffers = maxOffersEnv ? parseInt(maxOffersEnv, 10) : undefined;
-    const newProjects =
-      typeof maxOffers === "number" && !Number.isNaN(maxOffers)
-        ? candidates.slice(0, maxOffers)
-        : candidates;
+    const { projects, connects } = await client.getProjectsFeed({
+      priceFrom: minPrice,
+    });
 
-    console.log(`Найдено проектов без отклика: ${newProjects.length}`);
+    const candidates = projects
+      .filter((p) => !p.has_offer && p.price >= minPrice)
+      .sort((a, b) => a.offers - b.offers);
+
+    const limits = [maxOffers, connects?.active_connects].filter(
+      (v): v is number => typeof v === "number",
+    );
+    const sendLimit = limits.length > 0 ? Math.min(...limits) : Infinity;
+
+    console.log(
+      `Проектов от ${minPrice} руб. без отклика: ${candidates.length}, коннектов: ${connects?.active_connects ?? "н/д"}, лимит отправки: ${sendLimit}`,
+    );
 
     let analyzed = 0;
     let matched = 0;
     let sent = 0;
     let skipped = 0;
+    let failed = 0;
 
-    for (const project of newProjects) {
-      const existing = await db
+    if (sendLimit <= 0) {
+      console.warn("Нет доступных коннектов или лимит отправки равен 0");
+      return { analyzed, matched, sent, skipped, failed };
+    }
+
+    let lastSentAt: number | undefined;
+
+    for (const project of candidates) {
+      if (sent >= sendLimit) {
+        console.log(`Достигнут лимит отправки (${sendLimit}), завершаем`);
+        break;
+      }
+      if (Date.now() - startedAt > RUN_BUDGET_MS) {
+        console.warn("Время запуска на исходе, остальное — в следующий раз");
+        break;
+      }
+
+      const [record] = await db
         .select({
-          id: kworkOffers.id,
           isMatch: kworkOffers.isMatch,
           sent: kworkOffers.sent,
           error: kworkOffers.error,
@@ -68,187 +149,126 @@ kworkAutoRespondWorkflow.task({
         .where(eq(kworkOffers.projectId, project.id))
         .limit(1);
 
-      if (existing.length > 0) {
-        const record = existing[0];
-        if (
-          record &&
-          (record.sent || (record.isMatch === false && !record.error))
-        ) {
+      if (record) {
+        if (record.sent || (!record.isMatch && !record.error)) {
           skipped++;
           continue;
         }
-
-        const sentDb = record?.sent;
-        const isMatchDb = record?.isMatch;
-        const errorDb = record?.error;
         console.log(
-          `Проект #${project.id} уже был обработан ранее, но попробуем ещё раз: sent=${sentDb}, isMatch=${isMatchDb}, error=${errorDb}`,
+          `Повторная попытка по проекту #${project.id}: isMatch=${record.isMatch}, error=${record.error}`,
         );
-
-        await db
-          .delete(kworkOffers)
-          .where(eq(kworkOffers.projectId, project.id));
       }
 
-      console.log(`Анализирую проект #${project.id}: ${project.title}`);
+      console.log(
+        `Анализирую проект #${project.id} (${project.price} руб., откликов: ${project.offers}): ${project.title}`,
+      );
 
-      let analysis: ProjectAnalysis | undefined;
+      let analysis: ProjectAnalysis;
       try {
         analysis = await analyzeAndGenerateOffer(DEFAULT_PROFILE, project);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Неизвестная ошибка";
         console.error(`Ошибка анализа проекта #${project.id}: ${errorMessage}`);
-        try {
-          await db.insert(kworkOffers).values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: false,
-            matchReason: null,
-            suggestedPrice: null,
-            proposalText: null,
-            error: errorMessage,
-          });
-        } catch (dbErr) {
-          console.error(`DB insert error: ${dbErr}`);
-        }
+        failed++;
+        await saveOffer(db, project, { isMatch: false, error: errorMessage });
         continue;
       }
 
       analyzed++;
 
+      const analysisFields = {
+        isMatch: analysis.isMatch,
+        matchReason: analysis.reason || null,
+        suggestedPrice: analysis.suggestedPrice || null,
+        proposalText: analysis.proposalText?.trim() || null,
+      };
+
       if (!analysis.isMatch) {
-        await db
-          .insert(kworkOffers)
-          .values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: false,
-            matchReason: analysis.reason || null,
-            suggestedPrice: analysis.suggestedPrice || null,
-            proposalText: null,
-          })
-          .onConflictDoNothing();
+        await saveOffer(db, project, { ...analysisFields, proposalText: null });
         console.log(`Проект #${project.id} не подходит: ${analysis.reason}`);
         continue;
       }
 
       matched++;
 
-      if (!analysis.proposalText?.trim()) {
-        await db
-          .insert(kworkOffers)
-          .values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: true,
-            matchReason: analysis.reason || null,
-            suggestedPrice: analysis.suggestedPrice || null,
-            proposalText: null,
-            error: "AI не сгенерировал текст отклика",
-          })
-          .onConflictDoNothing();
+      if (!analysisFields.proposalText) {
+        failed++;
+        await saveOffer(db, project, {
+          ...analysisFields,
+          error: "AI не сгенерировал текст отклика",
+        });
         continue;
+      }
+
+      if (lastSentAt !== undefined) {
+        const wait =
+          lastSentAt + randomInt(SEND_GAP_MIN_MS, SEND_GAP_MAX_MS) - Date.now();
+        if (wait > 0) await sleep(wait);
       }
 
       try {
         await client.submitOffer({
           projectId: project.id,
-          description: analysis.proposalText,
+          description: analysisFields.proposalText,
           price: analysis.suggestedPrice,
           duration: analysis.suggestedDuration,
         });
-
-        sent++;
-
-        await db
-          .insert(kworkOffers)
-          .values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: true,
-            matchReason: analysis.reason || null,
-            suggestedPrice: analysis.suggestedPrice || null,
-            proposalText: analysis.proposalText || null,
-            sent: true,
-            sentAt: new Date(),
-          })
-          .onConflictDoNothing();
-
-        console.log(
-          `Отклик отправлен на проект #${project.id} за ${analysis.suggestedPrice} руб.`,
-        );
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Неизвестная ошибка";
-
-        if (err instanceof KworkOfferLimitError) {
-          console.warn(
-            `Лимит откликов исчерпан, останавливаем крон: ${errorMessage}`,
-          );
-          await db
-            .insert(kworkOffers)
-            .values({
-              projectId: project.id,
-              projectTitle: project.title,
-              projectPrice: project.price,
-              isMatch: false,
-              matchReason: null,
-              proposalText: null,
-              suggestedPrice: null,
-              error: errorMessage,
-            })
-            .onConflictDoNothing();
-          break;
-        }
 
         if (err instanceof KworkProjectNotOfferableError) {
           console.warn(
             `Проект #${project.id} недоступен для отклика: ${errorMessage}`,
           );
-          await db
-            .insert(kworkOffers)
-            .values({
-              projectId: project.id,
-              projectTitle: project.title,
-              projectPrice: project.price,
-              isMatch: false,
-              matchReason: null,
-              proposalText: null,
-              suggestedPrice: null,
-              error: errorMessage,
-            })
-            .onConflictDoNothing();
+          await saveOffer(db, project, {
+            ...analysisFields,
+            isMatch: false,
+            matchReason: `Недоступен для отклика: ${errorMessage}`,
+          });
           continue;
+        }
+
+        failed++;
+        await saveOffer(db, project, {
+          ...analysisFields,
+          error: errorMessage,
+        });
+
+        if (err instanceof KworkOfferLimitError) {
+          console.warn(`Лимит откликов исчерпан, завершаем: ${errorMessage}`);
+          break;
         }
 
         console.error(
           `Ошибка отправки отклика на проект #${project.id}: ${errorMessage}`,
         );
-
-        await db
-          .insert(kworkOffers)
-          .values({
-            projectId: project.id,
-            projectTitle: project.title,
-            projectPrice: project.price,
-            isMatch: true,
-            matchReason: analysis.reason || null,
-            suggestedPrice: analysis.suggestedPrice || null,
-            proposalText: analysis.proposalText || null,
-            sent: false,
-            error: errorMessage,
-          })
-          .onConflictDoNothing();
+        continue;
       }
+
+      sent++;
+      lastSentAt = Date.now();
+
+      await saveOffer(db, project, {
+        ...analysisFields,
+        sent: true,
+        sentAt: new Date(),
+      });
+
+      console.log(
+        `Отклик отправлен на проект #${project.id} за ${analysis.suggestedPrice} руб. (${sent}/${sendLimit})`,
+      );
     }
 
-    console.log("Авто-отклик завершён", { analyzed, matched, sent, skipped });
+    console.log("Авто-отклик завершён", {
+      analyzed,
+      matched,
+      sent,
+      skipped,
+      failed,
+    });
 
-    return { analyzed, matched, sent, skipped };
+    return { analyzed, matched, sent, skipped, failed };
   },
 });
