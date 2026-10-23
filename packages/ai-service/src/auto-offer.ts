@@ -169,9 +169,6 @@ ${trustPhrase ? `\nNEW_PROFILE: true\nNO_REVIEWS_TRUST: "${trustPhrase}"` : ""}
       prompt: userPrompt,
       output: Output.object({ schema: analysisSchema }),
       temperature: 0.8,
-      experimental_telemetry: {
-        isEnabled: true,
-      },
     }),
   );
 

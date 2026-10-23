@@ -1,4 +1,3 @@
-import "./instrumentation";
 
 import { Hatchet } from "@hatchet-dev/typescript-sdk";
 
