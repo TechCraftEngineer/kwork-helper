@@ -17,11 +17,5 @@
     "indentStyle": "space",
     "lineWidth": 80,
     "lineEnding": "lf"
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
-    }
   }
 }
